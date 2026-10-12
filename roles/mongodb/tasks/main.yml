@@ -1,0 +1,100 @@
+---
+- name: Install dependencies
+  ansible.builtin.apt:
+    name:
+      - gnupg
+      - curl
+    state: present
+
+- name: Import MongoDB GPG Key
+  ansible.builtin.get_url:
+    url: https://pgp.mongodb.com/server-8.0.asc
+    dest: /tmp/mongodb-server-8.0.asc
+    mode: "0644"
+
+- name: Convert MongoDB GPG Key
+  ansible.builtin.command:
+    cmd: gpg --dearmor -o /usr/share/keyrings/mongodb-server-8.0.gpg /tmp/mongodb-server-8.0.asc
+  args:
+    creates: /usr/share/keyrings/mongodb-server-8.0.gpg
+
+- name: Add MongoDB APT Repository
+  ansible.builtin.apt_repository:
+    repo: "deb [signed-by=/usr/share/keyrings/mongodb-server-8.0.gpg] https://repo.mongodb.org/apt/debian bookworm/mongodb-org/8.0 main"
+    state: present
+
+- name: Mettre à jour le cache APT
+  ansible.builtin.apt:
+    update_cache: true
+
+- name: Install MongoDB
+  ansible.builtin.apt:
+    name:
+      - mongodb-org
+      - python3-pymongo
+    state: present
+    update_cache: true
+
+- name: Configuration MongoDB
+  ansible.builtin.template:
+    src: mongod.conf.j2
+    dest: /etc/mongod.conf
+    owner: root
+    group: root
+    mode: "0644"
+  notify: Restart MongoDB
+
+- name: Check mongod status
+  ansible.builtin.service:
+    name: mongod
+    state: started
+    enabled: true
+
+- name: Wait for MongoDB to be ready
+  ansible.builtin.command: >
+    mongosh --quiet --eval "db.runCommand({ ping: 1 })"
+  register: mongodb_ping
+  until: mongodb_ping.rc == 0
+  retries: 10
+  delay: 3
+  changed_when: false
+
+- name: Create admin user (premier run - localhost exception)
+  community.mongodb.mongodb_user:
+    database: admin
+    name: "{{ mongodb_admin_user }}"
+    password: "{{ mongodb_admin_password }}"
+    roles:
+      - root
+    state: present
+  register: mongodb_admin_first
+  ignore_errors: true
+  no_log: true
+
+- name: MongoDB users
+  module_defaults:
+    community.mongodb.mongodb_user:
+      login_user: "{{ mongodb_admin_user }}"
+      login_password: "{{ mongodb_admin_password }}"
+      login_database: admin
+      state: present
+  no_log: true
+  block:
+    - name: Create admin user (runs suivants - avec credentials)
+      community.mongodb.mongodb_user:
+        database: admin
+        name: "{{ mongodb_admin_user }}"
+        password: "{{ mongodb_admin_password }}"
+        roles:
+          - root
+      when: mongodb_admin_first is failed
+
+    - name: Create application users
+      community.mongodb.mongodb_user:
+        database: "{{ item.name }}"
+        name: "{{ item.user }}"
+        password: "{{ item.password }}"
+        roles:
+          - role: dbOwner
+            db: "{{ item.name }}"
+      loop: "{{ mongodb_databases }}"

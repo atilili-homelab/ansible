@@ -1,0 +1,6 @@
+---
+ansible-navigator:
+  execution-environment:
+    enabled: false
+  playbook-artifact:
+    save-as: /tmp/{playbook_name}-artifact-{time_stamp}.json

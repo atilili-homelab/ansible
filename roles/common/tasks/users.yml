@@ -1,0 +1,71 @@
+---
+- name: Users - Check groups
+  loop: "{{ all_groups }}"
+  ansible.builtin.group:
+    name: "{{ item }}"
+    state: present
+
+- name: Users - Créer et configurer les comptes
+  ignore_errors: "{{ ansible_check_mode }}"
+  block:
+    - name: Users - Créer les users
+      loop: "{{ all_users }}"
+      loop_control:
+        label: "{{ item.name }}"
+      ansible.builtin.user:
+        name: "{{ item.name }}"
+        uid: "{{ item.uid }}"
+        groups: "{{ item.groups }}"
+        append: true
+        shell: /bin/bash
+        state: present
+        create_home: "{{ item.create_home | default(false) }}"
+
+    - name: Users - Creer le repertoire centralisé des clés SSH pour comptes de service
+      ansible.builtin.file:
+        path: /etc/ssh/authorized_keys
+        state: directory
+        owner: root
+        group: root
+        mode: "0755"
+
+    - name: Users - Déployer les clés SSH publique, supprime les anciennes clés
+      when:
+        - item.ssh_public_key is defined
+        - "'admin' in item.groups"
+      loop: "{{ all_users }}"
+      loop_control:
+        label: "{{ item.name }}"
+      ansible.posix.authorized_key:
+        user: "{{ item.name }}"
+        key: "{{ item.ssh_public_key }}"
+        exclusive: true
+        state: present
+
+    - name: Users - Déployer les clés des comptes de service dans le répertoire centralisé
+      when:
+        - item.ssh_public_key is defined
+        - "'automate' in item.groups"
+      loop: "{{ all_users }}"
+      loop_control:
+        label: "{{ item.name }}"
+      ansible.posix.authorized_key:
+        user: "{{ item.name }}"
+        key: "{{ item.ssh_public_key }}"
+        path: "/etc/ssh/authorized_keys/{{ item.name }}"
+        manage_dir: false
+        exclusive: true
+        state: present
+
+    - name: Users - Autoriser le sudo sans mot de passe
+      when: item.sudo is defined
+      loop: "{{ all_users }}"
+      loop_control:
+        label: "{{ item.name }}"
+      community.general.sudoers:
+        name: "{{ item.name }}"
+        user: "{{ item.name }}"
+        commands: ALL
+        runas: "ALL"
+        nopassword: true
+        state: present

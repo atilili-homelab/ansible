@@ -1,0 +1,5 @@
+---
+- name: Configurer le serveur DNS
+  hosts: dns_server
+  roles:
+    - technitium_dns

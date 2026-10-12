@@ -1,0 +1,21 @@
+---
+- name: Installer les dépendances
+  ansible.builtin.apt:
+    name: curl
+    state: present
+
+- name: Vérifier si Technitium est déjà installé
+  ansible.builtin.stat:
+    path: /opt/technitium/dns
+  register: technitium_dns_installed
+
+- name: Télécharger et exécuter le script d'installation
+  ansible.builtin.shell: set -o pipefail && curl -sSL {{ technitium_dns_install_url }} | bash
+  when: not technitium_dns_installed.stat.exists
+  changed_when: true
+
+- name: S'assurer que le service est démarré
+  ansible.builtin.service:
+    name: dns
+    state: started
+    enabled: true

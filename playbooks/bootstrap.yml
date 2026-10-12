@@ -1,0 +1,53 @@
+---
+- name: Bootstrap - Configuration de base des machines
+  hosts: all:!proxmox_nodes
+  tags: common
+  gather_facts: true
+  gather_subset:
+    - min
+    - hardware
+  roles:
+    - common
+
+- name: Bootstrap - Installation et configuration Docker
+  hosts: vm:vps
+  tags: docker
+  gather_facts: true
+  gather_subset:
+    - min
+  roles:
+    - docker
+
+- name: Bootstrap - Préparer le disque de données des workers
+  hosts: swarm_workers
+  tags: disk_data
+  gather_facts: true
+  gather_subset:
+    - min
+    - hardware
+  roles:
+    - disk_data
+
+- name: Bootstrap - Configurer GlusterFS
+  hosts: gluster
+  tags: glusterfs
+  gather_facts: false
+  roles:
+    - glusterfs
+
+- name: Bootstrap - Monter les partages NFS
+  hosts: nfs_media
+  tags: nfs
+  gather_facts: true
+  gather_subset:
+    - min
+    - hardware
+  roles:
+    - nfs
+
+- name: Initialiser Docker Swarm
+  hosts: swarm
+  tags: swarm
+  gather_facts: false
+  roles:
+    - swarm

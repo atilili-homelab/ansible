@@ -1,0 +1,23 @@
+---
+- name: Packages - Mettre à jour le cache APT
+  ansible.builtin.apt:
+    update_cache: true
+    cache_valid_time: 3600
+
+- name: Packages - Installer les paquets de base
+  ansible.builtin.apt:
+    state: present
+    name:
+      - sudo
+      - vim
+      - htop
+      - curl
+      - wget
+      - git
+      - tree
+      - net-tools
+      - dnsutils
+      - jq
+      - rsync
+      - fzf
+      - ncdu

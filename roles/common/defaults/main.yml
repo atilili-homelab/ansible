@@ -1,0 +1,2 @@
+common_swappiness: 60
+common_vfs_cache_pressure: 100

@@ -1,0 +1,40 @@
+---
+- name: Check NTP - Verification chrony sources
+  ansible.builtin.command: chronyc sources -v
+  register: ntp_check_chrony_sources
+  changed_when: false
+  ignore_errors: true
+
+- name: Check NTP - Affichage chrony sources
+  ansible.builtin.debug:
+    var: ntp_check_chrony_sources.stdout_lines
+  when: ntp_check_chrony_sources is not failed
+
+- name: Check NTP - Verification tracking chrony
+  ansible.builtin.command: chronyc tracking
+  register: ntp_check_chrony_tracking
+  changed_when: false
+  ignore_errors: true
+
+- name: Check NTP - Affichage des infos de tracking
+  ansible.builtin.debug:
+    var: ntp_check_chrony_tracking.stdout_lines
+  when: ntp_check_chrony_tracking is not failed
+
+- name: Check NTP - Verification desynchro horloge systeme
+  ansible.builtin.command: timedatectl status
+  register: ntp_check_time_status
+  changed_when: false
+
+- name: Check NTP - Affichage time status
+  ansible.builtin.debug:
+    var: ntp_check_time_status.stdout_lines
+
+- name: Check NTP - Echec si desynchro importante
+  ansible.builtin.command: chronyc tracking
+  register: ntp_check_offset_check
+  changed_when: false
+  failed_when: >
+    ntp_check_offset_check.stdout is search('System time\s+:\s+(\d+\.\d+)') and
+    (ntp_check_offset_check.stdout | regex_search('System time\s+:\s+(\d+\.\d+)','\\1') | first | float) > 0.1
+  when: ntp_check_chrony_tracking is not failed

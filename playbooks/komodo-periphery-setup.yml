@@ -1,0 +1,61 @@
+---
+- name: Manage Komodo Periphery
+  hosts: swarm, seedbox, mail, vps
+  roles:
+    - role: bpbradley.komodo
+      komodo_action: "update"
+      # Version Management :
+      komodo_version: "core"
+      komodo_core_http_address: "https://komodo.macopla.com"
+      # Connection Management Outbound:
+      komodo_core_address: "wss://komodo.macopla.com"
+      komodo_connect_as: "{{ inventory_hostname }}"
+      # Additional Variables:
+      komodo_logging_pretty: true
+  become: true
+
+# Isolation du namespace de montage pour les hôtes média :
+# la collecte de stats disque de periphery fait un statfs de TOUS les montages
+# (sans spawn_blocking, bug upstream #1392) ; quand un NAS distant flappe, le
+# statfs bloque le keepalive Ping 5s (codé en dur) → déconnexions Komodo.
+# TemporaryFileSystem=/mnt rend /mnt invisible dans le namespace de periphery :
+# plus aucun statfs sur les NFS/mergerfs, supervision Docker inchangée (socket).
+- name: Isoler periphery des montages média (nfs_media)
+  hosts: nfs_media
+  become: true
+  vars:
+    periphery_dropin_dir: /home/komodo/.config/systemd/user/periphery.service.d
+  tasks:
+    - name: Créer le répertoire de drop-in systemd user
+      ansible.builtin.file:
+        path: "{{ periphery_dropin_dir }}"
+        state: directory
+        owner: komodo
+        group: komodo
+        mode: "0755"
+
+    - name: Déposer le drop-in TemporaryFileSystem
+      ansible.builtin.copy:
+        dest: "{{ periphery_dropin_dir }}/override.conf"
+        owner: komodo
+        group: komodo
+        mode: "0644"
+        content: |
+          # Géré par Ansible (komodo-periphery-setup.yml) — ne pas modifier à la main.
+          # /mnt masqué : le statfs des NFS/mergerfs bloquait le Ping websocket.
+          [Service]
+          TemporaryFileSystem=/mnt
+      notify: Redémarrer periphery
+
+  handlers:
+    - name: Redémarrer periphery
+      ansible.builtin.systemd_service:
+        name: periphery
+        scope: user
+        state: restarted
+        daemon_reload: true
+      become: true
+      become_user: komodo
+      environment:
+        XDG_RUNTIME_DIR: /run/user/1003
+        DBUS_SESSION_BUS_ADDRESS: unix:path=/run/user/1003/bus

@@ -1,0 +1,5 @@
+---
+- name: Installation OpenBao
+  hosts: openbao_server
+  roles:
+    - openbao

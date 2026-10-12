@@ -1,0 +1,19 @@
+---
+- name: Installer Redis
+  ansible.builtin.apt:
+    name: redis-server
+    state: present
+
+- name: Configurer l'adresse d'écoute
+  ansible.builtin.lineinfile:
+    path: /etc/redis/redis.conf
+    regexp: "^bind"
+    line: "bind {{ redis_listen }}"
+  notify: Redémarrer Redis
+
+- name: Configurer le mot de passe
+  ansible.builtin.lineinfile:
+    path: /etc/redis/redis.conf
+    regexp: "^#?\\s*requirepass"
+    line: "requirepass {{ redis_password }}"
+  notify: Redémarrer Redis

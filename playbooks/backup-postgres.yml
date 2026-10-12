@@ -1,0 +1,253 @@
+---
+# Backup quotidien PostgreSQL - stacks arr (dozer / tier_database)
+#
+# Orchestre par Semaphore (Task Template + Schedule cron). Pieges Semaphore
+# actifs sur ce playbook (voir notes/03 - Runbooks/Semaphore - Pieges connus.md) :
+#   - ANSIBLE_CONFIG=ansible/ansible.cfg doit etre dans le Variable Group
+#     Semaphore, sinon become/callbacks ne s'appliquent pas (CWD = racine repo).
+#   - ANSIBLE_COLLECTIONS_PATH=ansible/collections:~/.ansible/collections doit
+#     etre positionne, sinon community.docker n'est pas trouve.
+#   - La tache de notification Apprise tourne en delegate_to: localhost avec
+#     become: false explicite (le conteneur Semaphore n'a pas sudo).
+#
+# Design :
+#   - Cibles listees dans backup_postgres_targets (extensible : ajouter une
+#     entree suffit pour couvrir un futur conteneur Postgres, ex. immich,
+#     authentik, ntfy). bookstack est hors perimetre (MariaDB).
+#   - Les bases applicatives de chaque conteneur sont decouvertes dynamiquement
+#     (psql sur pg_database), pas codees en dur -> robuste si une instance
+#     arr est ajoutee/retiree.
+#   - pg_dump -Fc tourne dans le conteneur, le flux binaire est redirige cote
+#     hote via `docker exec ... > fichier.tmp` (ansible.builtin.shell). On
+#     evite delibermement community.docker.docker_container_exec pour cette
+#     etape : le module fait un to_text() du stdout en interne, ce qui
+#     corromprait un dump binaire.
+#   - Le .tmp n'est renomme en .dump qu'apres verification d'integrite
+#     (pg_restore --list dans un conteneur ephemere de la MEME image que la
+#     source, pour eviter un mismatch de version pg_restore/pg_dump cote
+#     hote). Un dump tronque ne devient donc jamais un .dump "valide".
+#   - block/rescue/always : le rescue notifie Apprise puis RE-LEVE l'echec
+#     explicitement (sinon Ansible considere le rescue comme une recuperation
+#     reussie et Semaphore verrait la tache en succes).
+
+- name: Backup quotidien PostgreSQL - stacks arr (dozer)
+  hosts: tier_database
+  become: true
+  vars:
+    backup_postgres_root: /data/gluster/backups/postgres
+    backup_postgres_retention_days: 14
+    backup_postgres_date: "{{ ansible_facts.date_time.date }}"
+    backup_postgres_default_pg_image: postgres:18.4-trixie
+    apprise_url: "http://apprise:8000/notify/apprise"
+
+    # Cibles a sauvegarder. Ajouter une entree = couvrir un nouveau conteneur.
+    backup_postgres_targets:
+      - stack: sonarr
+        container_prefix: sonarr_sonarr-db
+        pg_user: sonarr
+      - stack: radarr
+        container_prefix: radarr_radarr-db
+        pg_user: radarr
+      - stack: prowlarr
+        container_prefix: prowlarr_prowlarr-db
+        pg_user: prowlarr
+      # Exemples pour une extension future (a valider avant activation) :
+      # - stack: immich
+      #   container_prefix: immich_immich-db
+      #   pg_user: immich
+      #   pg_image: ghcr.io/immich-app/postgres:18-vectorchord0.5.3
+      # - stack: authentik
+      #   container_prefix: authentik_authentik-db
+      #   pg_user: authentik
+      # - stack: ntfy
+      #   container_prefix: ntfy_ntfy-db
+      #   pg_user: ntfy
+
+  tasks:
+    - name: Backup Postgres (dump, verification, rotation)
+      block:
+        - name: Verifier que /data/gluster est monte
+          ansible.builtin.command: findmnt /data/gluster
+          changed_when: false
+
+        - name: Creer le repertoire de backup
+          ansible.builtin.file:
+            path: "{{ backup_postgres_root }}"
+            state: directory
+            mode: "0750"
+            owner: root
+            group: root
+
+        - name: Resoudre l'ID de chaque conteneur Postgres cible
+          ansible.builtin.command: >-
+            docker ps -q --filter name=^{{ item.container_prefix }}\.
+          loop: "{{ backup_postgres_targets }}"
+          loop_control:
+            label: "{{ item.stack }}"
+          register: backup_postgres_container_lookup
+          changed_when: false
+
+        - name: Construire la liste des conteneurs resolus
+          ansible.builtin.set_fact:
+            backup_postgres_containers: >-
+              {{ backup_postgres_containers | default([])
+                 + ( [ item.item | combine({'container_id': item.stdout | trim}) ]
+                     if (item.stdout | trim) != '' else [] ) }}
+          loop: "{{ backup_postgres_container_lookup.results }}"
+          loop_control:
+            label: "{{ item.item.stack }}"
+
+        - name: Echouer si aucun conteneur Postgres n'a ete resolu
+          ansible.builtin.fail:
+            msg: >-
+              Aucun conteneur Postgres trouve parmi
+              {{ backup_postgres_targets | map(attribute='container_prefix') | list }}
+          when: backup_postgres_containers | default([]) | length == 0
+
+        - name: Lister les bases applicatives de chaque conteneur
+          # NB: -d postgres explicite, sinon psql tente de se connecter a une
+          # base nommee comme l'utilisateur (ex. "sonarr"), qui n'existe pas.
+          community.docker.docker_container_exec:
+            container: "{{ item.container_id }}"
+            command: >-
+              psql -U {{ item.pg_user }} -d postgres -tAc
+              "SELECT datname FROM pg_database WHERE NOT datistemplate AND datname != 'postgres' ORDER BY datname"
+          loop: "{{ backup_postgres_containers }}"
+          loop_control:
+            label: "{{ item.stack }}"
+          register: backup_postgres_db_lookup
+          changed_when: false
+
+        - name: Associer la liste des bases decouvertes a chaque conteneur
+          ansible.builtin.set_fact:
+            backup_postgres_containers_with_dbs: >-
+              {{ backup_postgres_containers_with_dbs | default([])
+                 + [ item.item | combine({'databases': (item.stdout | trim).split()}) ] }}
+          loop: "{{ backup_postgres_db_lookup.results }}"
+          loop_control:
+            label: "{{ item.item.stack }}"
+
+        - name: Construire la liste finale des jobs de backup (bases + chemins)
+          ansible.builtin.set_fact:
+            backup_postgres_jobs: >-
+              {%- set jobs = [] -%}
+              {%- for c in backup_postgres_containers_with_dbs -%}
+              {%-   for db in c.databases -%}
+              {%-     set _ = jobs.append({
+                        'stack': c.stack,
+                        'container_id': c.container_id,
+                        'pg_user': c.pg_user,
+                        'pg_image': c.pg_image | default(backup_postgres_default_pg_image),
+                        'db': db,
+                        'tmp_path': backup_postgres_root ~ '/' ~ db ~ '_' ~ backup_postgres_date ~ '.dump.tmp',
+                        'final_path': backup_postgres_root ~ '/' ~ db ~ '_' ~ backup_postgres_date ~ '.dump',
+                      }) -%}
+              {%-   endfor -%}
+              {%- endfor -%}
+              {{ jobs }}
+
+        - name: Echouer si aucune base applicative n'a ete decouverte
+          ansible.builtin.fail:
+            msg: "Aucune base applicative decouverte parmi les conteneurs cibles."
+          when: backup_postgres_jobs | length == 0
+
+        - name: Dump de chaque base (pg_dump -Fc via docker exec, redirection cote hote)
+          ansible.builtin.shell: >-
+            docker exec {{ item.container_id }} pg_dump -Fc -U {{ item.pg_user }} -d {{ item.db }} > {{ item.tmp_path }}
+          loop: "{{ backup_postgres_jobs }}"
+          loop_control:
+            label: "{{ item.stack }}/{{ item.db }}"
+          register: backup_postgres_dump_results
+          ignore_errors: true
+          changed_when: true
+
+        - name: Verifier l'integrite des dumps reussis (pg_restore --list, meme image que la source)
+          ansible.builtin.command: >-
+            docker run --rm -v {{ item.item.tmp_path }}:/dump.tmp:ro {{ item.item.pg_image }}
+            pg_restore --list /dump.tmp
+          loop: "{{ backup_postgres_dump_results.results }}"
+          loop_control:
+            label: "{{ item.item.stack }}/{{ item.item.db }}"
+          register: backup_postgres_verify_results
+          when: item.rc is defined and item.rc == 0
+          ignore_errors: true
+          changed_when: false
+
+        - name: Renommer atomiquement les dumps valides (.tmp -> .dump)
+          ansible.builtin.command: >-
+            mv {{ item.item.item.tmp_path }} {{ item.item.item.final_path }}
+          loop: "{{ backup_postgres_verify_results.results }}"
+          loop_control:
+            label: "{{ item.item.item.stack }}/{{ item.item.item.db }}"
+          when: item.rc is defined and item.rc == 0
+          changed_when: true
+
+        - name: Nettoyer les .tmp restants (dump ou verification en echec)
+          # Ne laisse jamais un .dump tronque : seuls les fichiers renommes
+          # ci-dessus (donc verifies) portent l'extension .dump.
+          ansible.builtin.file:
+            path: "{{ item.tmp_path }}"
+            state: absent
+          loop: "{{ backup_postgres_jobs }}"
+          loop_control:
+            label: "{{ item.stack }}/{{ item.db }}"
+
+        - name: Construire la liste des echecs (dump ou verification d'integrite)
+          ansible.builtin.set_fact:
+            backup_postgres_failures: >-
+              {%- set failures = [] -%}
+              {%- for r in backup_postgres_dump_results.results -%}
+              {%-   if r.rc is not defined or r.rc != 0 -%}
+              {%-     set _ = failures.append(r.item.stack ~ '/' ~ r.item.db ~ ' (pg_dump)') -%}
+              {%-   endif -%}
+              {%- endfor -%}
+              {%- for r in backup_postgres_verify_results.results | default([]) -%}
+              {%-   if r.rc is not defined or r.rc != 0 -%}
+              {%-     set _ = failures.append(r.item.item.stack ~ '/' ~ r.item.item.db ~ ' (pg_restore --list)') -%}
+              {%-   endif -%}
+              {%- endfor -%}
+              {{ failures }}
+
+        - name: Echouer si au moins un dump ou une verification a echoue
+          ansible.builtin.fail:
+            msg: "Echecs de backup Postgres ({{ inventory_hostname }}) : {{ backup_postgres_failures | join(', ') }}"
+          when: backup_postgres_failures | length > 0
+
+      rescue:
+        - name: Notifier Apprise (echec du backup Postgres)
+          ansible.builtin.uri:
+            url: "{{ apprise_url }}"
+            method: POST
+            headers:
+              Content-Type: "application/json"
+            body_format: json
+            body:
+              title: "backup-postgres - ECHEC ({{ inventory_hostname }})"
+              body: >-
+                {{ backup_postgres_failures | default(['Echec avant la phase de dump - voir logs Semaphore']) | join(', ') }}
+              tag: "infra-error"
+            status_code: [200, 204]
+          delegate_to: localhost
+          become: false
+
+        - name: Re-lever l'echec pour que Semaphore marque la tache "failed"
+          ansible.builtin.fail:
+            msg: "Backup Postgres en echec sur {{ inventory_hostname }} - notification Apprise envoyee."
+
+      always:
+        - name: Rotation - identifier les dumps de plus de N jours
+          ansible.builtin.find:
+            paths: "{{ backup_postgres_root }}"
+            patterns: "*.dump"
+            age: "{{ backup_postgres_retention_days }}d"
+            age_stamp: mtime
+            recurse: false
+          register: backup_postgres_old_dumps
+
+        - name: Rotation - supprimer les dumps expires
+          ansible.builtin.file:
+            path: "{{ item.path }}"
+            state: absent
+          loop: "{{ backup_postgres_old_dumps.files }}"
+          loop_control:
+            label: "{{ item.path }}"

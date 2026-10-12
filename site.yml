@@ -1,0 +1,4 @@
+---
+- name: Boostrap
+  tags: bootstrap
+  import_playbook: playbooks/bootstrap.yml

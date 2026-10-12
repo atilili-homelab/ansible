@@ -1,0 +1,11 @@
+---
+mongodb_bind_ip: "0.0.0.0"
+
+mongodb_wiredtiger_cache_gb: 0.25
+
+mongodb_admin_user: admin
+mongodb_admin_password: "{{ lookup('community.hashi_vault.vault_kv2_get', 'databases/mongodb').secret.admin_password }}"
+mongodb_databases:
+  - name: komodo
+    user: komodo
+    password: "{{ lookup('community.hashi_vault.vault_kv2_get', 'databases/komodo').secret.db_password }}"

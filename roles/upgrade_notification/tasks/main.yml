@@ -1,0 +1,34 @@
+---
+- name: Vérifier les prérequis
+  ansible.builtin.assert:
+    that: apprise_url is defined
+    fail_msg: "apprise_url doit être définie (inventory/group_vars/all.yml)"
+
+- name: Classer les hôtes par statut
+  vars:
+    _reboot_status: "{{ lookup('template', 'reboot_status.json.j2') }}"
+  ansible.builtin.set_fact:
+    upgrade_notification_rebooted_auto: "{{ _reboot_status.auto }}"
+    upgrade_notification_reboot_pending: "{{ _reboot_status.pending }}"
+    upgrade_notification_unreachable_hosts: "{{ _reboot_status.unreachable }}"
+
+- name: Envoyer notification Apprise
+  ansible.builtin.uri:
+    url: "{{ apprise_url }}"
+    method: POST
+    headers:
+      Content-Type: "application/json"
+    body_format: json
+    body:
+      title: "apt-update - {{ 'ERREUR' if upgrade_notification_unreachable_hosts else 'Reboot requis' if upgrade_notification_reboot_pending else 'OK' }}"
+      body: >-
+        {% if upgrade_notification_unreachable_hosts %}Injoignables : {{ upgrade_notification_unreachable_hosts | join(', ') }}
+        {% endif %}
+        {% if upgrade_notification_reboot_pending %}Reboot requis : {{ upgrade_notification_reboot_pending | join(', ') }}
+        {% endif %}
+        {% if upgrade_notification_rebooted_auto %}Reboot auto : {{ upgrade_notification_rebooted_auto | join(', ') }}
+        {% endif %}
+        {% if not upgrade_notification_unreachable_hosts and not upgrade_notification_reboot_pending
+        and not upgrade_notification_rebooted_auto %}Tout est a jour.{% endif %}
+      tag: "{{ 'infra-error' if upgrade_notification_unreachable_hosts else 'infra-warning' if upgrade_notification_reboot_pending else 'infra-ok' }}"
+    status_code: [200, 204]

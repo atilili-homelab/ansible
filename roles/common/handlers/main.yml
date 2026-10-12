@@ -1,0 +1,36 @@
+---
+- name: Restart sshd
+  ansible.builtin.systemd:
+    name: sshd
+    state: restarted
+
+- name: Sauvegarde de sshd_config après modifications
+  ansible.builtin.copy:
+    src: "{{ common_ssh_hardening_sshd_config_path }}"
+    dest: "{{ common_ssh_hardening_sshd_backup_path }}"
+    remote_src: true
+    mode: "0600"
+
+- name: Restart chrony
+  ignore_errors: "{{ ansible_check_mode }}"
+  ansible.builtin.service:
+    name: "{{ common_chrony_service_name }}"
+    state: restarted
+
+- name: Restart zramswap
+  ansible.builtin.service:
+    name: zramswap
+    state: restarted
+    enabled: true
+
+- name: Appliquer sysctl
+  ansible.builtin.command: sysctl -p /etc/sysctl.d/99-vm-swap.conf
+  changed_when: false
+
+- name: Formater le swapfile
+  ansible.builtin.command: mkswap /swapfile
+  changed_when: true
+
+- name: Activer le swapfile
+  ansible.builtin.command: swapon /swapfile
+  changed_when: true

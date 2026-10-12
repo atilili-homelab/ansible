@@ -1,0 +1,6 @@
+---
+- name: Swarm - Initialisation du Swarm
+  ansible.builtin.import_tasks: init.yml
+
+- name: Swarm - Attribution des labels
+  ansible.builtin.import_tasks: labels.yml

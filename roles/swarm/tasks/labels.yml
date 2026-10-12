@@ -1,0 +1,17 @@
+---
+- name: Swarm - Construire les labels bool
+  loop: "{{ group_names | intersect(['traefik', 'gpu']) }}"
+  ansible.builtin.set_fact:
+    swarm_node_labels: "{{ swarm_node_labels | default({}) | combine({item: 'true'}) }}"
+
+- name: Swarm - Construire les label tier
+  loop: "{{ group_names | select('match', '^tier_') | map('regex_replace', '^tier_', '') | list }}"
+  ansible.builtin.set_fact:
+    swarm_node_labels: "{{ swarm_node_labels | default({}) | combine({'tier': item}) }}"
+
+- name: Swarm - Appliquer les labels aux noeuds
+  delegate_to: "{{ swarm_leader }}"
+  community.docker.docker_node:
+    hostname: "{{ inventory_hostname }}"
+    labels: "{{ swarm_node_labels | default({}) }}"
+    labels_state: replace

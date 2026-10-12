@@ -1,0 +1,31 @@
+---
+- name: GlusterFS - Créer le répertoire brick
+  ansible.builtin.file:
+    path: "{{ glusterfs_brick_dir }}"
+    state: directory
+    mode: "0755"
+
+- name: GlusterFS - Vérifier si le volume existe déjà
+  ansible.builtin.command: gluster volume info {{ glusterfs_volume_name }}
+  register: glusterfs_volume_info
+  failed_when: false
+  changed_when: false
+  run_once: true
+
+- name: GlusterFS - Créer le volume GlusterFS
+  ansible.builtin.command: >
+    gluster volume create {{ glusterfs_volume_name }}
+    replica 3 arbiter 1
+    {{ hostvars[groups['gluster_servers'][0]].ansible_host }}:{{ gluster_brick_dir }}
+    {{ hostvars[groups['gluster_servers'][1]].ansible_host }}:{{ gluster_brick_dir }}
+    {{ hostvars[groups['gluster_arbiter'][0]].ansible_host }}:{{ gluster_brick_dir }}
+    force
+  when: glusterfs_volume_info.rc != 0
+  changed_when: true
+  run_once: true
+
+- name: GlusterFS - Démarrer le volume
+  ansible.builtin.command: gluster volume start {{ glusterfs_volume_name }}
+  when: glusterfs_volume_info.rc != 0
+  run_once: true
+  changed_when: true

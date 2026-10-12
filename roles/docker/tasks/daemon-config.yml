@@ -1,0 +1,28 @@
+---
+- name: Docker - Configuration du Docker Daemon
+  block:
+    - name: Docker - Creation dossier config
+      ansible.builtin.file:
+        path: /etc/docker
+        state: directory
+        mode: "0755"
+
+    - name: Docker - Ecriture configuration
+      ansible.builtin.template:
+        src: daemon.json.j2
+        dest: /etc/docker/daemon.json
+        mode: "0644"
+        backup: true
+        validate: "dockerd --validate --config-file=%s"
+      notify:
+        - Restart Docker
+
+  rescue:
+    - name: Docker - Report validation
+      ansible.builtin.debug:
+        msg: >-
+          Échec sur la tâche {{ ansible_failed_task.name }} :
+          {{ ansible_failed_result.msg | default('voir stderr') }}
+
+- name: Appliquer le restart de Docker
+  ansible.builtin.meta: flush_handlers

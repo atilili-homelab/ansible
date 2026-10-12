@@ -1,0 +1,109 @@
+---
+- name: NFS - Installer nfs-common
+  ansible.builtin.apt:
+    name: nfs-common
+    state: present
+
+- name: NFS - Créer le répertoire parent NAS-EXT
+  ansible.builtin.file:
+    path: /mnt/NAS-EXT
+    state: directory
+    mode: "0755"
+
+- name: NFS - Vérifier si les montages NFS sont déjà actifs
+  ansible.builtin.command: mountpoint -q {{ item.path }}
+  register: nfs_client_nfs_check
+  loop: "{{ nfs_client_mounts }}"
+  failed_when: false
+  changed_when: false
+
+- name: NFS - Créer les points de montage NFS
+  ansible.builtin.file:
+    path: "{{ item.item.path }}"
+    state: directory
+    mode: "0755"
+  loop: "{{ nfs_client_nfs_check.results }}"
+  when: item.rc != 0
+
+- name: NFS - Enregistrer les montages NFS dans /etc/fstab
+  ansible.posix.mount:
+    path: "{{ item.path }}"
+    src: "{{ item.server }}:{{ item.src }}"
+    fstype: nfs4
+    opts: "{{ item.opts }}"
+    state: present
+  loop: "{{ nfs_client_mounts }}"
+
+- name: NFS - Créer les répertoires de drop-in systemd pour le rate-limit NFS
+  ansible.builtin.file:
+    path: "/etc/systemd/system/{{ item.path | regex_replace('^/', '') | replace('-', '\\x2d') | regex_replace('/', '-') }}.mount.d"
+    state: directory
+    mode: "0755"
+  loop: "{{ nfs_client_mounts }}"
+
+- name: NFS - Désactiver le rate-limit systemd sur les montages NFS (réarmement auto)
+  ansible.builtin.copy:
+    dest: "/etc/systemd/system/{{ item.path | regex_replace('^/', '') | replace('-', '\\x2d') | regex_replace('/', '-') }}.mount.d/ratelimit.conf"
+    content: |
+      [Unit]
+      StartLimitIntervalSec=0
+    mode: "0644"
+  loop: "{{ nfs_client_mounts }}"
+
+- name: NFS - Recharger systemd pour activer les unités automount
+  ansible.builtin.systemd:
+    daemon_reload: true
+
+- name: NFS - Monter les partages NFS locaux (hors automount)
+  ansible.posix.mount:
+    path: "{{ item.item.path }}"
+    src: "{{ item.item.server }}:{{ item.item.src }}"
+    fstype: nfs4
+    opts: "{{ item.item.opts }}"
+    state: mounted
+  loop: "{{ nfs_client_nfs_check.results }}"
+  when:
+    - item.rc != 0
+    - "'x-systemd.automount' not in item.item.opts"
+
+- name: NFS - Installer mergerfs
+  ansible.builtin.apt:
+    name: mergerfs
+    state: present
+
+- name: NFS - Vérifier si les pools mergerfs sont déjà montés
+  ansible.builtin.command: mountpoint -q /mnt/UNIFIED/{{ item.name }}
+  register: nfs_client_mergerfs_check
+  loop: "{{ nfs_client_mergerfs_pools }}"
+  loop_control:
+    label: "{{ item.name }}"
+  failed_when: false
+  changed_when: false
+  check_mode: false
+
+- name: NFS - Créer le répertoire parent UNIFIED
+  ansible.builtin.file:
+    path: /mnt/UNIFIED
+    state: directory
+    mode: "0755"
+
+- name: NFS - Créer les points de montage UNIFIED
+  ansible.builtin.file:
+    path: "/mnt/UNIFIED/{{ item.item.name }}"
+    state: directory
+    mode: "0755"
+  loop: "{{ nfs_client_mergerfs_check.results }}"
+  loop_control:
+    label: "{{ item.item.name }}"
+  when: item.rc != 0
+
+- name: NFS - Monter les pools mergerfs
+  ansible.posix.mount:
+    path: "/mnt/UNIFIED/{{ item.name }}"
+    src: "{{ item.sources | join(':') }}"
+    fstype: fuse.mergerfs
+    opts: "defaults,ro,inodecalc=path-hash,cache.files=partial,dropcacheonclose=true,_netdev"
+    state: mounted
+  loop: "{{ nfs_client_mergerfs_pools }}"
+  loop_control:
+    label: "{{ item.name }}"

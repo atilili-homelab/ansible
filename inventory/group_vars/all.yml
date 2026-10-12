@@ -1,0 +1,40 @@
+# Notifications:
+apprise_url: https://apprise.macopla.com/notify/apprise
+
+# Groups:
+ssh_groups:
+  - admin
+  - automate
+admin_groups:
+  - sudo
+  - admin
+  - docker
+automate_groups:
+  - sudo
+  - automate
+all_groups: "{{ all_users | map(attribute='groups') | flatten | unique }}"
+
+# Users:
+all_users:
+  - name: yoann
+    uid: 1000
+    groups: "{{ admin_groups }}"
+    sudo: true
+    create_home: true
+    ssh_public_key: "ssh-ed25519 AAAAC3NzaC1lZDI1NTE5AAAAIHmioSel9+Ui/9dLqOQiQ6kV+LFzkvzjXS0VIQeS0ZeQ"
+  - name: guillaume
+    uid: 1001
+    groups: "{{ admin_groups }}"
+    sudo: true
+    create_home: true
+    ssh_public_key: "ssh-ed25519 AAAAC3NzaC1lZDI1NTE5AAAAIAqQU6xx5V98EgcegInaoz95Ph7tYuj7OE/QieYRnF3e"
+  - name: ansible
+    uid: 5000
+    groups: "{{ automate_groups }}"
+    sudo: true
+    ssh_public_key: "ssh-ed25519 AAAAC3NzaC1lZDI1NTE5AAAAIOo4kpjvy47Ce23q0oguoLGiy4RoDcLDVqwWME5jAURy"
+  - name: semaphore
+    uid: 5100
+    sudo: true
+    groups: "{{ automate_groups }}"
+    ssh_public_key: "ssh-ed25519 AAAAC3NzaC1lZDI1NTE5AAAAIN7T+IXKvUzSv/tl8J3CDH78PhiJ29g+VqkxxtGttiBB"

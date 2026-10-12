@@ -1,0 +1,128 @@
+---
+nfs_opts: "ro,softerr,_netdev,nofail,timeo=100,noatime,retrans=3,\
+  x-systemd.automount,x-systemd.device-timeout=25s,x-systemd.mount-timeout=30s,x-systemd.idle-timeout=600"
+nfs_server_gui: "192.168.70.200"
+nfs_client_mounts:
+  # TrueNAS local
+  - src: "/mnt/tank/jellyfin"
+    path: "/mnt/jellyfin"
+    server: "10.86.30.100"
+    opts: "rw,hard,_netdev,nofail,noatime,actimeo=3"
+
+  # NAS Guillaume
+  - src: "/volume3/16T"
+    path: "/mnt/NAS-EXT/16T"
+    server: "{{ nfs_server_gui }}"
+    opts: "{{ nfs_opts }}"
+  - src: "/volume2/4K"
+    path: "/mnt/NAS-EXT/4K"
+    server: "{{ nfs_server_gui }}"
+    opts: "{{ nfs_opts }}"
+  - src: "/volume4/DX-1"
+    path: "/mnt/NAS-EXT/DX1"
+    server: "{{ nfs_server_gui }}"
+    opts: "{{ nfs_opts }}"
+  - src: "/volume5/DX-2"
+    path: "/mnt/NAS-EXT/DX2"
+    server: "{{ nfs_server_gui }}"
+    opts: "{{ nfs_opts }}"
+  - src: "/volume7/DX-4"
+    path: "/mnt/NAS-EXT/DX4"
+    server: "{{ nfs_server_gui }}"
+    opts: "{{ nfs_opts }}"
+
+  # NAS ATN
+  - src: "/volume1/Plex"
+    path: "/mnt/NAS-EXT/ATN"
+    server: "192.168.1.192"
+    opts: "{{ nfs_opts }}"
+
+  # NAS MEDA
+  - src: "/volume1/video"
+    path: "/mnt/NAS-EXT/NAS3"
+    server: "192.168.30.68"
+    opts: "{{ nfs_opts }}"
+  - src: "/volume1/video"
+    path: "/mnt/NAS-EXT/DS918D"
+    server: "192.168.30.20"
+    opts: "{{ nfs_opts }}"
+  - src: "/volume3/GuiTemp"
+    path: "/mnt/NAS-EXT/NAS1"
+    server: "192.168.30.239"
+    opts: "{{ nfs_opts }}"
+
+nfs_client_mergerfs_pools:
+  - name: FILMS-HD
+    sources:
+      - "/mnt/jellyfin/medias/films/HD"
+      - "/mnt/NAS-EXT/16T/Films HD"
+      - "/mnt/NAS-EXT/DS918D/HD"
+
+  - name: FILMS-UHD
+    sources:
+      - "/mnt/jellyfin/medias/films/4K"
+      - "/mnt/NAS-EXT/16T/Films UHD"
+      - "/mnt/NAS-EXT/DX4/Films UHD3"
+      - "/mnt/NAS-EXT/4K/UHD"
+      - "/mnt/NAS-EXT/DS918D/UHD"
+
+  - name: SERIES-HD
+    sources:
+      - "/mnt/jellyfin/medias/series/HD"
+      - "/mnt/NAS-EXT/16T/Series HD"
+      - "/mnt/NAS-EXT/DS918D/Séries"
+      - "/mnt/NAS-EXT/ATN/Séries HD"
+      - "/mnt/NAS-EXT/DX1/TV1"
+      - "/mnt/NAS-EXT/NAS3/Séries HD"
+      - "/mnt/NAS-EXT/NAS1/Séries"
+
+  - name: SERIES-UHD
+    sources:
+      - "/mnt/jellyfin/medias/series/4K"
+      - "/mnt/NAS-EXT/16T/Series UHD"
+      - "/mnt/NAS-EXT/DS918D/Séries UHD"
+      - "/mnt/NAS-EXT/ATN/Séries UHD"
+      - "/mnt/NAS-EXT/DX2/TVUHD1"
+      - "/mnt/NAS-EXT/NAS3/Séries 4K"
+
+  - name: FILMS-ANIMATION-HD
+    sources:
+      - "/mnt/jellyfin/medias/films animation/HD"
+      - "/mnt/NAS-EXT/DS918D/Films/Animation"
+      - "/mnt/NAS-EXT/16T/Films Animations HD"
+      - "/mnt/NAS-EXT/DS918D/Animation"
+
+  - name: FILMS-ANIMATION-UHD
+    sources:
+      - "/mnt/jellyfin/medias/films animation/4K"
+      - "/mnt/NAS-EXT/4K/Films Animations UHD"
+      - "/mnt/NAS-EXT/DS918D/Animation UHD"
+
+  - name: ANIMES
+    sources:
+      - "/mnt/jellyfin/medias/animes"
+      - "/mnt/NAS-EXT/16T/Animations-Mangas"
+      - "/mnt/NAS-EXT/DX1/Animations-Mangas"
+      - "/mnt/NAS-EXT/DS918D/Animations-Mangas"
+
+  - name: CONCERTS
+    sources:
+      - "/mnt/jellyfin/medias/concerts"
+      - "/mnt/NAS-EXT/4K/Concerts"
+
+  - name: DESSIN-ANIME
+    sources:
+      - "/mnt/jellyfin/medias/dessins animés"
+      - "/mnt/NAS-EXT/16T/Dessin Anime"
+      - "/mnt/NAS-EXT/DX2/Dessins Animes"
+
+  - name: SPECTACLES
+    sources:
+      - "/mnt/jellyfin/medias/spectacles"
+      - "/mnt/NAS-EXT/16T/Spectacle"
+      - "/mnt/NAS-EXT/DS918D/Spectacles"
+
+  - name: DOCUMENTAIRES-ENFANT
+    sources:
+      - "/mnt/jellyfin/medias/documentaires enfants"
+      - "/mnt/NAS-EXT/DX2/Documentaires Enfants"

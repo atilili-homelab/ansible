@@ -1,0 +1,8 @@
+---
+mariadb_listen: "0.0.0.0"
+mariadb_allowed_network: "{{ ansible_host | regex_replace('\\.[0-9]+$', '.%') }}"
+
+mariadb_databases:
+  - name: bookstack
+    user: bookstack
+    password: "{{ lookup('community.hashi_vault.vault_kv2_get', 'databases/bookstack').secret.db_password }}"

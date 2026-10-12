@@ -1,0 +1,17 @@
+net:
+  port: 27017
+  bindIp: {{ mongodb_bind_ip }}
+
+storage:
+  dbPath: /var/lib/mongodb
+  wiredTiger:
+    engineConfig:
+      cacheSizeGB: {{ mongodb_wiredtiger_cache_gb }}
+
+systemLog:
+  destination: file
+  path: /var/log/mongodb/mongod.log
+  logAppend: true
+
+security:
+  authorization: enabled

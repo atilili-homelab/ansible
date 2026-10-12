@@ -1,0 +1,10 @@
+---
+- name: Upgrade
+  tags: upgrade
+  import_playbook: playbooks/upgrade.yml
+
+- name: Check NTP
+  hosts: all:!proxmox_nodes
+  tags: ntp_check
+  roles:
+    - ntp_check

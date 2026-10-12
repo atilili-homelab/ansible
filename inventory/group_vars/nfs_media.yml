@@ -1,0 +1,11 @@
+---
+# Hôtes média (link, merovingian) : réduire la fréquence de collecte de stats
+# disque de Komodo periphery.
+# Bug upstream Komodo #1392 (ouvert) : disks.refresh(true) (statfs synchrone de
+# TOUS les montages) tourne sur le runtime tokio du websocket sans spawn_blocking.
+# Une collecte lente sur les montages NFS/mergerfs média affame le keepalive Ping
+# (5 s, codé en dur, non configurable) -> "Timed out waiting for Ping" -> le
+# serveur bagote dans Komodo (alertes ntfy).
+# 5-sec -> 1-min : ~12x moins de fenetres de collecte bloquante.
+# Reversible : supprimer ce fichier ou repasser a "5-sec", puis rejouer le playbook.
+komodo_stats_polling_rate: "1-min"

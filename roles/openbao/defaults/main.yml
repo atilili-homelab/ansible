@@ -1,0 +1,5 @@
+---
+openbao_version: "2.5.4"
+openbao_raft_dir: /var/raft
+openbao_config_dir: /etc/openbao
+openbao_api_port: 8200

@@ -1,0 +1,26 @@
+#{{ ansible_managed }}
+
+# NTP serveurs
+{% for server in common_ntp_servers %}
+server {{ server }} iburst
+{% endfor %}
+
+# Enregistrement du drift de l'horloge
+driftfile /var/lib/chrony/drift
+
+# Laissez l'horloge système être mise en place
+# dans les trois premières mises à jour
+# si son décalage est supérieur à 1 seconde
+makestep 1.0 3
+
+# Activation synchronisation kernel RTC
+rtcsync
+
+# Activation du timestamping sur la plupart des interfaces
+#hwtimestamp *
+
+# Log files directory
+logdir /var/log/chrony
+
+# Selection des informations a log
+#log measurements statistics tracking

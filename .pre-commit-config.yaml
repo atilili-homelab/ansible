@@ -47,6 +47,12 @@ repos:
 
   - repo: local
     hooks:
+      - id: ansible-lint
+        name: ansible-lint
+        entry: ansible-lint
+        language: system
+        pass_filenames: false
+        files: \.ya?ml$
       - id: forgejo-runner-validate
         name: Validate Forgejo Actions files
         entry: forgejo-runner validate --directory .

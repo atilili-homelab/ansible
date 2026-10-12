@@ -1,0 +1,47 @@
+---
+- name: Upgrade - Install needrestart
+  ansible.builtin.apt:
+    name: needrestart
+    state: present
+
+- name: Upgrade - Mettre à jour tous les paquets
+  ansible.builtin.apt:
+    upgrade: dist
+    update_cache: true
+    cache_valid_time: 3600
+
+- name: Upgrade - Reboot services si nécessaire
+  changed_when: false
+  failed_when: false
+  ansible.builtin.command: needrestart -r a -q
+
+- name: Upgrade - Attente SSH
+  ansible.builtin.wait_for_connection:
+    delay: 5
+    timeout: 60
+
+- name: Upgrade - Vérifier si un reboot est nécessaire
+  changed_when: false
+  failed_when: false
+  register: upgrade_reboot_required
+  ansible.builtin.command: needrestart -q -k -p
+
+- name: Upgrade - Report reboot nécessaire par serveur
+  changed_when: upgrade_reboot_required.rc == 2
+  ansible.builtin.debug:
+    msg: "{{ upgrade_reboot_required.rc }}"
+
+- name: Upgrade - Rebooter si nécessaire
+  when:
+    - upgrade_reboot_required.rc == 2
+    - upgrade_auto_reboot
+  ansible.builtin.reboot:
+    msg: "Reboot initialisé par Ansible"
+    test_command: "logger '[ansible]: Reboot par Ansible apres kernel upgrade'"
+    reboot_timeout: 300
+
+- name: Upgrade - Supression et clean des paquets inutiles après upgrade
+  ansible.builtin.apt:
+    autoremove: true
+    clean: true
+    purge: true

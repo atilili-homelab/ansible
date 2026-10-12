@@ -1,0 +1,17 @@
+---
+- name: Créer les réseaux overlay Swarm
+  hosts: swarm_managers[0]
+  tasks:
+    - name: Créer les réseaux overlay par tier
+      community.docker.docker_network:
+        name: "{{ item }}"
+        driver: overlay
+        attachable: true
+        state: present
+      loop:
+        - traefik-public
+        - net-security
+        - net-apps
+        - net-media
+        - net-seedbox
+        - net-monitoring

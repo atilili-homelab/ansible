@@ -1,0 +1,16 @@
+---
+- name: Common - Installer les paquets de base
+  ansible.builtin.import_tasks: packages.yml
+
+- name: Common - Configuration Chrony NTP
+  ansible.builtin.import_tasks: time.yml
+
+- name: Common - Configurer les utilisateurs
+  ansible.builtin.import_tasks: users.yml
+
+- name: Common - Configuration sshd
+  ansible.builtin.import_tasks: sshd.yml
+
+- name: Common - Configurer le swap
+  ansible.builtin.import_tasks: swap.yml
+  when: "'lxc' not in group_names"

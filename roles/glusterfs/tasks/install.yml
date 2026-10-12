@@ -1,0 +1,12 @@
+---
+- name: GlusterFS - Installer GlusterFS server
+  ansible.builtin.apt:
+    name: glusterfs-server
+    state: present
+  when: "'gluster_servers' in group_names or 'gluster_arbiter' in group_names"
+
+- name: GlusterFS - Installer GlusterFS client
+  ansible.builtin.apt:
+    name: glusterfs-client
+    state: present
+  when: "'gluster_clients' in group_names"

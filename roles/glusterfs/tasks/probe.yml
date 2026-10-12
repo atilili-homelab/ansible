@@ -1,0 +1,12 @@
+---
+- name: GlusterFS - Démarrer et activer le service GlusterFS
+  ansible.builtin.systemd:
+    name: glusterd
+    state: started
+    enabled: true
+
+- name: GlusterFS - Peer probe des autres serveurs et de l'arbitre
+  ansible.builtin.command: gluster peer probe {{ hostvars[item].ansible_host }}
+  loop: "{{ (groups['gluster_servers'] + groups['gluster_arbiter']) | difference([inventory_hostname]) }}"
+  run_once: true
+  changed_when: false

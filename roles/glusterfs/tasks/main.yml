@@ -1,0 +1,14 @@
+---
+- name: GlusterFS - Installer GlusterFS
+  ansible.builtin.import_tasks: install.yml
+
+- name: GlusterFS - Découvrir les pairs du cluster
+  ansible.builtin.import_tasks: probe.yml
+  when: "'gluster_servers' in group_names or 'gluster_arbiter' in group_names"
+
+- name: GlusterFS - Créer les volume répliqué
+  ansible.builtin.import_tasks: volume.yml
+  when: "'gluster_servers' in group_names or 'gluster_arbiter' in group_names"
+
+- name: GlusterFS - Monter le volume GlusterFS
+  ansible.builtin.import_tasks: mount.yml

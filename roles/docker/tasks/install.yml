@@ -1,0 +1,43 @@
+---
+- name: Docker - Installer les dépendances Docker
+  ansible.builtin.apt:
+    name:
+      - ca-certificates
+      - gnupg
+    state: present
+
+- name: Docker - Ajouter la clé GPG Docker
+  ansible.builtin.get_url:
+    url: https://download.docker.com/linux/debian/gpg
+    dest: "{{ docker_key }}"
+    mode: "0644"
+
+- name: Docker - Ajouter le dépôt APT Docker
+  ansible.builtin.deb822_repository:
+    name: docker
+    types: deb
+    uris: https://download.docker.com/linux/debian
+    suites: "{{ ansible_facts['distribution_release'] }}"
+    components: stable
+    architectures: "{{ 'amd64' if ansible_facts['architecture'] == 'x86_64' else ansible_facts['architecture'] }}"
+    signed_by: "{{ docker_key }}"
+    state: present
+
+- name: Docker - Installer Docker
+  ansible.builtin.apt:
+    name:
+      - docker-ce
+      - docker-ce-cli
+      - containerd.io
+      - docker-buildx-plugin
+      - docker-compose-plugin
+      - python3-docker
+    state: present
+    update_cache: true
+  notify: Démarrer Docker
+
+- name: Docker - Check que Docker est bien démarré et activé au boot
+  ansible.builtin.systemd:
+    name: docker
+    state: started
+    enabled: true

@@ -1,0 +1,36 @@
+---
+- name: Time - Installation de chrony
+  ansible.builtin.package:
+    name: chrony
+    state: present
+
+- name: Time - Configuration timezone
+  community.general.timezone:
+    name: "{{ common_ntp_timezone }}"
+
+- name: Time - Configuration et activation de chrony
+  ignore_errors: "{{ ansible_check_mode }}"
+  block:
+    - name: Time - Deploiement configuration chrony
+      notify: Restart chrony
+      ansible.builtin.template:
+        src: chrony.conf.j2
+        dest: "{{ common_chrony_config_path }}"
+        owner: root
+        group: root
+        mode: "0644"
+        backup: true
+
+    - name: Time - Desactiver le controle de l'horloge systeme par chrony (LXC)
+      ansible.builtin.lineinfile:
+        path: /etc/default/chrony
+        regexp: "^DAEMON_OPTS="
+        line: 'DAEMON_OPTS="-F 1 -x"'
+      notify: Restart chrony
+      when: "'lxc' in group_names"
+
+    - name: Time - Activation et demarrage chrony
+      ansible.builtin.service:
+        name: "{{ common_chrony_service_name }}"
+        state: started
+        enabled: true

@@ -1,0 +1,3 @@
+---
+redis_listen: "0.0.0.0"
+redis_password: "{{ lookup('community.hashi_vault.vault_kv2_get', 'databases/redis').secret.db_password }}"

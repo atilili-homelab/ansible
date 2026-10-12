@@ -1,0 +1,4 @@
+---
+glusterfs_volume_name: gv0
+glusterfs_brick_dir: /data/brick
+glusterfs_mount_point: /data/gluster

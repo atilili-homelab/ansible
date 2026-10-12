@@ -1,0 +1,67 @@
+---
+- name: Data - Vérifier si /data est déjà monté
+  ansible.builtin.command: mountpoint -q /data
+  register: disk_data_mounted
+  failed_when: false
+  changed_when: false
+
+- name: Data - Identifier le disque de données (non monté, sans partitions)
+  ansible.builtin.set_fact:
+    disk_data_device: >-
+      {{ (ansible_devices | dict2items
+        | selectattr('value.partitions', 'equalto', {})
+        | map(attribute='key')
+        | select('match', '^sd')
+        | list)[0]
+        | default('')
+      }}
+  when: disk_data_mounted.rc != 0
+
+- name: Data - Afficher le disque détecté
+  ansible.builtin.debug:
+    msg: "Disque de données détecté : /dev/{{ disk_data_device }}"
+  when: disk_data_mounted.rc != 0 and disk_data_device != ''
+
+- name: Data - Installer parted
+  ansible.builtin.apt:
+    name: parted
+    state: present
+  when: disk_data_mounted.rc != 0 and disk_data_device != ''
+
+- name: Data - Créer la partition sur le disque de données
+  community.general.parted:
+    device: "/dev/{{ disk_data_device }}"
+    number: 1
+    state: present
+    fs_type: ext4
+  when: disk_data_mounted.rc != 0 and disk_data_device != ''
+
+- name: Data - Formater en ext4 avec label data
+  community.general.filesystem:
+    dev: "/dev/{{ disk_data_device }}1"
+    fstype: ext4
+    opts: "-L data"
+  when: disk_data_mounted.rc != 0 and disk_data_device != ''
+
+- name: Data - Remonter disque sur vm rebuild
+  ansible.builtin.command: blkid -L data
+  register: disk_data_existing_label
+  failed_when: false
+  changed_when: false
+  when: disk_data_mounted.rc != 0
+
+- name: Data - Créer le point de montage /data
+  ansible.builtin.file:
+    path: /data
+    state: directory
+    mode: "0755"
+  when: disk_data_mounted.rc != 0 and ( disk_data_device != '' or disk_data_existing_label.rc == 0 )
+
+- name: Data - Monter /data au boot
+  ansible.posix.mount:
+    path: /data
+    src: "LABEL=data"
+    fstype: ext4
+    opts: defaults
+    state: mounted
+  when: disk_data_mounted.rc != 0 and ( disk_data_device != '' or disk_data_existing_label.rc == 0 )

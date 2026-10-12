@@ -1,0 +1,3 @@
+---
+swarm_leader: "{{ groups['swarm_managers'] | sort | first }}"
+swarm_port_comm: 2377

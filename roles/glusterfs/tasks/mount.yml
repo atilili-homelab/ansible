@@ -1,0 +1,14 @@
+---
+- name: GlusterFS - Créer le point de montage
+  ansible.builtin.file:
+    path: "{{ glusterfs_mount_point }}"
+    state: directory
+    mode: "0755"
+
+- name: GlusterFS - Monter le volume GlusterFS
+  ansible.posix.mount:
+    path: "{{ glusterfs_mount_point }}"
+    src: "{{ hostvars[groups['gluster_servers'][0]].ansible_host }}:/{{ glusterfs_volume_name }}"
+    fstype: glusterfs
+    opts: defaults,_netdev
+    state: mounted

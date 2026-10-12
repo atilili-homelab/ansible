@@ -1,0 +1,37 @@
+---
+- name: Upgrade - Mise à jour des vps
+  hosts: vps
+  serial: 1
+  ignore_unreachable: true
+  roles:
+    - upgrade
+
+- name: Upgrade - Mise à jour VMs workers
+  hosts: swarm_workers
+  serial: 1
+  ignore_unreachable: true
+  roles:
+    - upgrade
+
+- name: Upgrade - Mise à jour LXC
+  hosts: lxc
+  serial: 1
+  ignore_unreachable: true
+  roles:
+    - upgrade
+
+- name: Upgrade - Mise à jour managers Swarm
+  hosts: swarm_managers
+  serial: 1
+  ignore_unreachable: true
+  vars:
+    upgrade_auto_reboot: false
+  roles:
+    - upgrade
+
+- name: Upgrade - Notification Apprise
+  hosts: localhost
+  gather_facts: false
+  become: false
+  roles:
+    - upgrade_notification

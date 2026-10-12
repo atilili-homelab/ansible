@@ -1,0 +1,11 @@
+---
+postgresql_listen: "0.0.0.0"
+postgresql_allowed_network: "{{ ansible_host | regex_replace('\\.[0-9]+$', '.0') }}/24" # Subnet de l'host
+
+postgresql_databases:
+  - name: authentik
+    user: authentik
+    password: "{{ lookup('community.hashi_vault.vault_kv2_get', 'databases/authentik').secret.db_password }}"
+  - name: immich
+    user: immich
+    password: "{{ lookup('community.hashi_vault.vault_kv2_get', 'databases/immich').secret.db_password }}"

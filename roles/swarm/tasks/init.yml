@@ -1,0 +1,38 @@
+---
+- name: Swarm - Initialisation du swarm
+  register: swarm_leader_output
+  when: inventory_hostname == swarm_leader
+  community.docker.docker_swarm:
+    state: present
+    advertise_addr: "{{ hostvars[swarm_leader]['ansible_host'] }}"
+    listen_addr: "{{ hostvars[swarm_leader]['ansible_host'] }}"
+
+- name: Swarm - Swarm join
+  module_defaults:
+    community.docker.docker_swarm:
+      state: join
+      advertise_addr: "{{ ansible_host }}"
+      remote_addrs:
+        ["{{ hostvars[swarm_leader]['ansible_host'] }}:{{ swarm_port_comm }}"]
+  block:
+    - name: Swarm - Rejoindre le Swarm en tant que manager
+      changed_when: false
+      when:
+        - inventory_hostname != swarm_leader
+        - "'swarm_managers' in group_names"
+      community.docker.docker_swarm:
+        join_token: "{{ hostvars[swarm_leader]['swarm_leader_output']['swarm_facts']['JoinTokens']['Manager'] }}"
+
+    - name: Swarm - Rejoindre le Swarm en tant que worker
+      changed_when: false
+      when: "'swarm_workers' in group_names"
+      community.docker.docker_swarm:
+        join_token: "{{ hostvars[swarm_leader]['swarm_leader_output']['swarm_facts']['JoinTokens']['Worker'] }}"
+
+- name: Swarm - Installer les dependances Python de community.docker.docker_stack
+  ansible.builtin.apt:
+    name:
+      - python3-jsondiff
+      - python3-yaml
+    state: present
+  when: "'swarm_managers' in group_names"

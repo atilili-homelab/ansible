@@ -1,0 +1,6 @@
+docker_key: "/etc/apt/keyrings/docker.asc"
+
+docker_no_new_privileges: true
+docker_log_driver: json-file
+docker_log_max_size: "10m"
+docker_log_max_file: "3"

@@ -1,0 +1,37 @@
+all:
+  vars:
+    ansible_python_interpreter: /usr/bin/python3
+  children:
+    swarm:
+      children:
+        swarm_managers:
+          children:
+            manager:
+        swarm_workers:
+          children:
+            tier_infra:
+            tier_apps:
+            tier_media:
+            tier_monitor:
+            tier_database:
+            tier_standalone:
+    gluster:
+      children:
+        gluster_servers:
+          children:
+            tier_infra:
+            tier_apps:
+        gluster_arbiter:
+          children:
+            tier_monitor:
+        gluster_clients:
+          children:
+            manager:
+            seedbox:
+            tier_database:
+            tier_media:
+            tier_standalone:
+    nfs_media:
+      children:
+        tier_media:
+        seedbox:

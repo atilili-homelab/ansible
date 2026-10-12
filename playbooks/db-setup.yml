@@ -1,0 +1,17 @@
+---
+
+- name: Configurer le serveur de base de données
+  hosts: db_server
+  pre_tasks:
+    - name: Debug vault env vars
+      ansible.builtin.debug:
+        msg:
+          - "AUTH_METHOD: {{ lookup('env', 'VAULT_AUTH_METHOD') }}"
+          - "ADDR: {{ lookup('env', 'VAULT_ADDR') }}"
+          - "ROLE_ID: {{ lookup('env', 'VAULT_ROLE_ID') | length }} chars"
+          - "SECRET_ID: {{ lookup('env', 'VAULT_SECRET_ID') | length }} chars"
+  roles:
+    - postgresql
+    - mariadb
+    - mongodb
+    - redis

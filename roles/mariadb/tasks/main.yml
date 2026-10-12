@@ -1,0 +1,35 @@
+---
+- name: Installer MariaDB
+  ansible.builtin.apt:
+    name:
+      - mariadb-server
+      - mariadb-client
+      - python3-pymysql
+    state: present
+
+- name: Configurer l'adresse d'écoute
+  ansible.builtin.lineinfile:
+    path: /etc/mysql/mariadb.conf.d/50-server.cnf
+    regexp: "^#?bind-address"
+    line: "bind-address = {{ mariadb_listen }}"
+  notify: Redémarrer MariaDB
+
+- name: Créer les utilisateurs MariaDB
+  ansible.mysql.mysql_user:
+    login_unix_socket: /run/mysqld/mysqld.sock
+    name: "{{ item.user }}"
+    password: "{{ item.password }}"
+    host: "{{ mariadb_allowed_network }}"
+    priv: "{{ item.name }}.*:ALL"
+    column_case_sensitive: true
+    state: present
+  loop: "{{ mariadb_databases }}"
+  no_log: true
+
+- name: Créer les bases de données
+  ansible.mysql.mysql_db:
+    login_unix_socket: /run/mysqld/mysqld.sock
+    name: "{{ item.name }}"
+    state: present
+  loop: "{{ mariadb_databases }}"
+  no_log: true

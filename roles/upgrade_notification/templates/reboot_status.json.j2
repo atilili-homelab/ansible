@@ -1,0 +1,16 @@
+{%- set auto = [] -%}
+{%- set pending = [] -%}
+{%- set unreachable = [] -%}
+{%- for host in groups['all'] -%}
+  {%- set r = hostvars[host].get('upgrade_reboot_required', {}) -%}
+  {%- if r.get('unreachable') -%}
+    {%- set _ = unreachable.append(host) -%}
+  {%- elif r.get('rc') == 2 -%}
+    {%- if hostvars[host].get('upgrade_auto_reboot', true) -%}
+      {%- set _ = auto.append(host) -%}
+    {%- else -%}
+      {%- set _ = pending.append(host) -%}
+    {%- endif -%}
+  {%- endif -%}
+{%- endfor -%}
+{{ {'auto': auto, 'pending': pending, 'unreachable': unreachable} }}
