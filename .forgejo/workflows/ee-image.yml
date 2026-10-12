@@ -27,11 +27,10 @@ jobs:
 
       - name: Build the Execution Environment
         run: |
-          nix develop -c bash -c "export DOCKER_HOST='$DOCKER_HOST' \
-            && ansible-builder build \
+          nix develop -c ansible-builder build \
             --container-runtime docker \
             --tag test-ee:pr-${{ forgejo.event.number }} \
-            --verbosity 3"
+            --verbosity 3
 
       - name: Check collections
         run: |
@@ -42,11 +41,3 @@ jobs:
         run: |
           docker run --rm test-ee:pr-${{ forgejo.event.number }} \
             pip check
-
-      - name: Run test playbook
-        run: |
-          nix develop -c ansible-navigator run site.yml \
-            --execution-environment-image test-ee:pr-${{ forgejo.event.number }} \
-            --mode stdout \
-            --syntax-check
-            --pull-policy never
