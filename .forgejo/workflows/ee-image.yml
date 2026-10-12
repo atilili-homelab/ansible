@@ -3,7 +3,7 @@ on:
   workflow_dispatch:
   pull_request:
     paths:
-      - "execution-environments.yml"
+      - "execution-environment.yml"
       - "requirements.yml"
       - "requirements.txt"
       - "bindep.txt"
@@ -27,7 +27,7 @@ jobs:
 
       - name: Build the Execution Environment
         run: |
-          nix develop -c ansible-builder build \
+          nix develop --keep DOCKER_HOST -c ansible-builder build \
             --container-runtime docker \
             --tag test-ee:pr-${{ forgejo.event.number }} \
             --verbosity 3
@@ -44,7 +44,8 @@ jobs:
 
       - name: Run test playbook
         run: |
-          nix develop -c ansible-navigator run playbooks/site.yml \
+          nix develop -c ansible-navigator run site.yml \
             --execution-environment-image test-ee:pr-${{ forgejo.event.number }} \
             --mode stdout \
+            --syntax-check
             --pull-policy never
