@@ -1,0 +1,49 @@
+name: Build EE and Run Tests
+on:
+  workflow_dispatch:
+  pull_request:
+    paths:
+      - "execution-environments.yml"
+      - "requirements.yml"
+      - "requirements.txt"
+      - "bindep.txt"
+
+jobs:
+  build-ee:
+    name: Build Execution Environment
+    runs-on: nix
+    env:
+      NIX_CONFIG: "experimental-features = nix-command flakes"
+      IMAGE: forge.macopla.com/homelab/ansible/ansible-ee
+    steps:
+      - name: Install nodejs
+        run: nix profile add nixpkgs#nodejs-slim
+
+      - name: Checkout
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+
+      - name: Install docker client
+        run: nix profile add nixpkgs#docker-client nixpkgs#iproute2
+
+      - name: Build the Execution Environment
+        run: |
+          nix develop -c ansible-builder build \
+            --tag test-ee:pr-${{ forgejo.event.number }} \
+            --verbosity 3
+
+      - name: Check collections
+        run: |
+          docker run -rm test-ee:pr-${{ forgejo.event.number }} \
+            ansible-galaxy collection list
+
+      - name: Verify Python packages
+        run: |
+          docker run -rm test-ee:pr-${{ forgejo.event.number }} \
+            pip check
+
+      - name: Run test playbook
+        run: |
+          nix develop -c ansible-navigator run playbooks/site.yml \
+            --execution-environment-image test-ee:pr-${{ forgejo.event.number }} \
+            --mode stdout \
+            --pull-policy never

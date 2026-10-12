@@ -1,5 +1,6 @@
-.vault_password
 .ansible/
 .direnv/
+.vault_password
 *.retry
+context/
 result
