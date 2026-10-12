@@ -27,10 +27,11 @@ jobs:
 
       - name: Build the Execution Environment
         run: |
-          nix develop --keep DOCKER_HOST -c ansible-builder build \
+          nix develop -c bash -c "export DOCKER_HOST='$DOCKER_HOST' \
+            && ansible-builder build \
             --container-runtime docker \
             --tag test-ee:pr-${{ forgejo.event.number }} \
-            --verbosity 3
+            --verbosity 3"
 
       - name: Check collections
         run: |
