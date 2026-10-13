@@ -8,6 +8,7 @@ on:
       - "requirements.yml"
       - "requirements.txt"
       - "bindep.txt"
+      - ".forgejo/workflows/ee-image.yml"
 
 jobs:
   build-ee:
@@ -49,7 +50,7 @@ jobs:
           for tag in $FORGEJO_SHA latest; do
             nix shell --inputs-from . nixpkgs#skopeo -c \
               skopeo --insecure-policy \
-              copy --src-daemon-host "$DOCKER_HOST" \
+              copy --src-daemon-host "http://dind.docker.internal:2375" \
               --dest-creds "ci-bot:${{ secrets.CI_ANSIBLE_PUSH_TOKEN }}" \
               docker-daemon:$IMAGE:$FORGEJO_SHA \
               docker://$IMAGE_PATH:$tag

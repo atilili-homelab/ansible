@@ -10,6 +10,7 @@ jobs:
     runs-on: nix
     env:
       NIX_CONFIG: "experimental-features = nix-command flakes"
+      SKIP: ansible-lint
     steps:
       - name: Install nodejs
         run: nix profile add nixpkgs#nodejs-slim
@@ -26,3 +27,18 @@ jobs:
           key: pre-commit-${{ hashFiles('.pre-commit-config.yaml') }}
       - name: Pre-commit
         run: nix develop -c pre-commit run --all-files --show-diff-on-failure
+
+  ansible-lint:
+    name: Ansible-lint
+    runs-on: docker
+    container:
+      image: forge.macopla.com/homelab/ansible/ansible-ee:latest
+      credentials:
+        username: ci-bot
+        password: ${{ secrets.CI_ANSIBLE_PULL_TOKEN }}
+    steps:
+      - name: Checkout
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+
+      - name: Ansible-lint
+        run: ansible-lint
