@@ -1,7 +1,7 @@
 ---
 # Backup quotidien PostgreSQL - stacks arr (dozer / tier_database)
 #
-# Orchestre par Semaphore (Task Template + Schedule cron). Pieges Semaphore
+# Orchestre par Semaphore (Task Template + Schedule cron).
 # actifs sur ce playbook (voir notes/03 - Runbooks/Semaphore - Pieges connus.md) :
 #   - ANSIBLE_CONFIG=ansible/ansible.cfg doit etre dans le Variable Group
 #     Semaphore, sinon become/callbacks ne s'appliquent pas (CWD = racine repo).
@@ -19,13 +19,13 @@
 #     arr est ajoutee/retiree.
 #   - pg_dump -Fc tourne dans le conteneur, le flux binaire est redirige cote
 #     hote via `docker exec ... > fichier.tmp` (ansible.builtin.shell). On
-#     evite delibermement community.docker.docker_container_exec pour cette
-#     etape : le module fait un to_text() du stdout en interne, ce qui
-#     corromprait un dump binaire.
+#     evite community.docker.docker_container_exec pour cette
+#     etape : le module faisait un to_text() du stdout, ce qui
+#     corrompait un dump binaire.
 #   - Le .tmp n'est renomme en .dump qu'apres verification d'integrite
 #     (pg_restore --list dans un conteneur ephemere de la MEME image que la
 #     source, pour eviter un mismatch de version pg_restore/pg_dump cote
-#     hote). Un dump tronque ne devient donc jamais un .dump "valide".
+#     hote).
 #   - block/rescue/always : le rescue notifie Apprise puis RE-LEVE l'echec
 #     explicitement (sinon Ansible considere le rescue comme une recuperation
 #     reussie et Semaphore verrait la tache en succes).
@@ -105,8 +105,6 @@
           when: backup_postgres_containers | default([]) | length == 0
 
         - name: Lister les bases applicatives de chaque conteneur
-          # NB: -d postgres explicite, sinon psql tente de se connecter a une
-          # base nommee comme l'utilisateur (ex. "sonarr"), qui n'existe pas.
           community.docker.docker_container_exec:
             container: "{{ item.container_id }}"
             command: >-
@@ -183,8 +181,6 @@
           changed_when: true
 
         - name: Nettoyer les .tmp restants (dump ou verification en echec)
-          # Ne laisse jamais un .dump tronque : seuls les fichiers renommes
-          # ci-dessus (donc verifies) portent l'extension .dump.
           ansible.builtin.file:
             path: "{{ item.tmp_path }}"
             state: absent
