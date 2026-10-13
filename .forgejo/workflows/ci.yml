@@ -32,7 +32,7 @@ jobs:
     name: Ansible-lint
     runs-on: docker
     container:
-      image: forge.macopla.com/homelab/ansible/ansible-ee:latest
+      image: forge.macopla.com/homelab/ansible/ansible-ee:latest@sha256:0a65666bd4abec12e11635540676990d062a3f64209eca3447e2eb55d2d19c43
       credentials:
         username: ci-bot
         password: ${{ secrets.CI_ANSIBLE_PULL_TOKEN }}
