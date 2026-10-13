@@ -31,6 +31,8 @@ jobs:
   ansible-lint:
     name: Ansible-lint
     runs-on: docker
+    env:
+      HOME: /runner
     container:
       image: forge.macopla.com/homelab/ansible/ansible-ee:latest@sha256:0a65666bd4abec12e11635540676990d062a3f64209eca3447e2eb55d2d19c43
       credentials:
