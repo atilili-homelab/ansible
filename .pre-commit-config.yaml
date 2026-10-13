@@ -51,8 +51,8 @@ repos:
         name: ansible-lint
         entry: ansible-lint
         language: system
-        pass_filenames: false
         files: \.ya?ml$
+        exclude: ^\.forgejo/
       - id: forgejo-runner-validate
         name: Validate Forgejo Actions files
         entry: forgejo-runner validate --directory .
