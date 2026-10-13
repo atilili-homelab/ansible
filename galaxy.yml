@@ -1,0 +1,22 @@
+---
+namespace: homelab
+name: base
+version: 1.0.0
+readme: README.md
+repository: https://forge.macopla.com/homelab/ansible
+tags: [linux, infrastructure]
+authors:
+  - Atilili
+description: Rôles de base du homelab
+license:
+  - MIT
+dependencies:
+  community.general: ">=13.0.0"
+  community.docker: ">=5.0.0"
+build_ignore:
+  - inventory
+  - playbooks
+  - site.yml
+  - maintenance.yml
+  - .forgejo
+  - context
