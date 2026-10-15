@@ -7,7 +7,7 @@ name: Test
 jobs:
   pre-commit:
     name: Pre-commit
-    runs-on: nix
+    runs-on: podman-nix
     env:
       NIX_CONFIG: "experimental-features = nix-command flakes"
       SKIP: ansible-lint
@@ -30,7 +30,7 @@ jobs:
 
   ansible-lint:
     name: Ansible-lint
-    runs-on: docker
+    runs-on: podman-nix
     env:
       HOME: /runner
       ANSIBLE_LOG_PATH: /tmp/ansible.log
