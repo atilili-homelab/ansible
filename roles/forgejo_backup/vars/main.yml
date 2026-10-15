@@ -1,0 +1,7 @@
+---
+forgejo_backup_container: forgejo-forgejo-1
+forgejo_backup_dir: /var/backups/forgejo
+forgejo_backup_env_file: /etc/forgejo-backup.env
+forgejo_backup_pbs_repository: "yoann@pbs!forgejo@10.86.30.110:storenas"
+forgejo_backup_pbs_namespace: Macopla/forgejo
+forgejo_backup_pbs_fingerprint: "af:54:0c:e6:eb:64:ce:aa:17:51:7c:ad:77:90:30:45:0b:8e:d8:b4:69:ca:cf:70:05:d8:f8:7a:6b:3f:06:e6"

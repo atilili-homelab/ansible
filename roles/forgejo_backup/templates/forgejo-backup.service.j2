@@ -1,0 +1,9 @@
+[Unit]
+Description=Sauvegarde de Forgejo vers Proxmox Backup Server
+After=docker.service network-online.target
+Wants=network-online.target
+
+[Service]
+Type=oneshot
+EnvironmentFile={{ forgejo_backup_env_file }}
+ExecStart=/usr/local/bin/forgejo-backup

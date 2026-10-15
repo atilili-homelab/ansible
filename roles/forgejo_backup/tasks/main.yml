@@ -1,0 +1,56 @@
+---
+- name: Sauvegarde Forgejo - Ajouter le dépôt pbs-client
+  ansible.builtin.deb822_repository:
+    name: pbs-client
+    types: deb
+    uris: http://download.proxmox.com/debian/pbs-client
+    suites: "{{ ansible_facts['distribution_release'] }}"
+    components: main
+    signed_by: /usr/share/keyrings/proxmox-archive-keyring.gpg
+    state: present
+
+- name: Sauvegarde Forgejo - Installer le client Proxmox Backup
+  ansible.builtin.apt:
+    name: proxmox-backup-client
+    state: present
+    update_cache: true
+  ignore_errors: "{{ ansible_check_mode }}"
+
+- name: Sauvegarde Forgejo - Créer le dossier des dumps
+  ansible.builtin.file:
+    path: "{{ forgejo_backup_dir }}"
+    state: directory
+    mode: "0700"
+
+- name: Sauvegarde Forgejo - Déposer les accès à PBS
+  ansible.builtin.copy:
+    content: |
+      PBS_REPOSITORY='{{ forgejo_backup_pbs_repository }}'
+      PBS_FINGERPRINT='{{ forgejo_backup_pbs_fingerprint }}'
+      PBS_PASSWORD='{{ lookup('community.hashi_vault.vault_kv2_get', 'backup/forgejo-pbs').secret.secret }}'
+    dest: "{{ forgejo_backup_env_file }}"
+    mode: "0600"
+  no_log: true
+
+- name: Sauvegarde Forgejo - Installer le script
+  ansible.builtin.template:
+    src: forgejo-backup.sh.j2
+    dest: /usr/local/bin/forgejo-backup
+    mode: "0750"
+
+- name: Sauvegarde Forgejo - Installer le service et le timer
+  ansible.builtin.template:
+    src: "forgejo-backup.{{ item }}.j2"
+    dest: "/etc/systemd/system/forgejo-backup.{{ item }}"
+    mode: "0644"
+  loop:
+    - service
+    - timer
+
+- name: Sauvegarde Forgejo - Activer le timer
+  ansible.builtin.systemd_service:
+    name: forgejo-backup.timer
+    enabled: true
+    state: started
+    daemon_reload: true
+  ignore_errors: "{{ ansible_check_mode }}"

@@ -1,0 +1,19 @@
+#!/bin/bash
+set -euo pipefail
+
+notify_failure() {
+  curl -fsS -X POST "{{ apprise_url }}" \
+    -H "Content-Type: application/json" \
+    -d '{"title": "forgejo-backup - ECHEC ({{ inventory_hostname }})", "body": "Sauvegarde de la forge en échec, voir journalctl -u forgejo-backup", "tag": "infra-error"}'
+}
+trap notify_failure ERR
+
+docker exec -u 1000 {{ forgejo_backup_container }} forgejo dump \
+  --type tar.zst \
+  --skip-package-data --skip-index --skip-repo-archives \
+  --file - > {{ forgejo_backup_dir }}/forgejo.tar.zst.tmp
+mv {{ forgejo_backup_dir }}/forgejo.tar.zst.tmp {{ forgejo_backup_dir }}/forgejo.tar.zst
+
+proxmox-backup-client backup forgejo.pxar:{{ forgejo_backup_dir }} \
+  --ns {{ forgejo_backup_pbs_namespace }} \
+  --backup-id forgejo

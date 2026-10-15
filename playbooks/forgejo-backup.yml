@@ -1,0 +1,9 @@
+---
+- name: Sauvegarde Forgejo - Dump quotidien vers PBS
+  hosts: vps
+  tags: forgejo_backup
+  gather_facts: true
+  gather_subset:
+    - min
+  roles:
+    - forgejo_backup
