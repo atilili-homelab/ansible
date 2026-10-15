@@ -95,11 +95,3 @@
     hour: "4"
     minute: "0"
     job: "XDG_RUNTIME_DIR=/run/user/{{ forgejo_runner_uid }} podman system prune -af"
-
-- name: Runner - Nettoyer chaque semaine le Docker-in-Docker
-  ansible.builtin.cron:
-    name: dind-prune
-    weekday: "0"
-    hour: "4"
-    minute: "30"
-    job: "docker exec docker_dind docker -H tcp://127.0.0.1:2375 system prune -af"
