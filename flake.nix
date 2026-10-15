@@ -29,6 +29,7 @@
           ++ (with pkgs; [
             openbao # connexion AppRole dans .envrc
             ansible-navigator
+            podman
           ]);
       };
     });

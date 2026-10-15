@@ -16,7 +16,7 @@ jobs:
     runs-on: podman-nix
     env:
       NIX_CONFIG: "experimental-features = nix-command flakes"
-      DOCKER_BUILDKIT: "0"
+      CONTAINER_HOST: unix:///var/run/docker.sock
       IMAGE: ansible-ee
       IMAGE_PATH: forge.macopla.com/homelab/ansible/ansible-ee
     steps:
@@ -26,37 +26,32 @@ jobs:
       - name: Checkout
         uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
 
-      - name: Install docker client
-        run: nix profile add nixpkgs#docker-client
-
       - name: Build the Execution Environment
         run: |
           nix develop -c ansible-builder build \
-            --container-runtime docker \
             --tag $IMAGE:$FORGEJO_SHA \
             --verbosity 3
 
       - name: Check collections
         run: |
-          docker run --rm $IMAGE:$FORGEJO_SHA \
+          nix develop -c podman run --rm $IMAGE:$FORGEJO_SHA \
             ansible-galaxy collection list
 
       - name: Verify Python packages
         run: |
-          docker run --rm $IMAGE:$FORGEJO_SHA \
+          nix develop -c podman run --rm $IMAGE:$FORGEJO_SHA \
             pip check
 
       - name: Push image
         run: |
           for tag in $FORGEJO_SHA latest; do
-            nix shell --inputs-from . nixpkgs#skopeo -c \
-              skopeo --insecure-policy \
-              copy -- dest-creds "ci-bot:${{ secrets.CI_ANSIBLE_PUSH_TOKEN }}" \
-              docker-daemon:$IMAGE:$FORGEJO_SHA \
+            nix develop -c podman push --creds \
+              "ci-bot:${{ secrets.CI_ANSIBLE_PUSH_TOKEN }}" \
+              $IMAGE:$FORGEJO_SHA \
               docker://$IMAGE_PATH:$tag
           done
 
       - name: Rmi image
         if: always()
         run: |
-          docker rmi $IMAGE:$FORGEJO_SHA
+          nix develop -c podman rmi $IMAGE:$FORGEJO_SHA
