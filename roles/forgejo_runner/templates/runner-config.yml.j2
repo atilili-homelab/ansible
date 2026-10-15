@@ -6,7 +6,7 @@ log:
 
 runner:
   file: {{ forgejo_runner_home }}/.runner # Where to store the registration result.
-  capacity: 1 # concurent task
+  capacity: 2 # concurent task
   timeout: 3h
   shutdown_timeout: 3h
   insecure: false
@@ -28,7 +28,7 @@ cache:
   actions_cache_url_override: ""
 
 container:
-  network: ""
+  network: "host"
   enable_ipv6: false
   privileged: false
   workdir_parent:
