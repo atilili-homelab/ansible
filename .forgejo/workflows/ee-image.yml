@@ -13,9 +13,10 @@ on:
 jobs:
   build-ee:
     name: Build Execution Environment
-    runs-on: nix
+    runs-on: podman-nix
     env:
       NIX_CONFIG: "experimental-features = nix-command flakes"
+      DOCKER_BUILDKIT: "0"
       IMAGE: ansible-ee
       IMAGE_PATH: forge.macopla.com/homelab/ansible/ansible-ee
     steps:
@@ -50,8 +51,7 @@ jobs:
           for tag in $FORGEJO_SHA latest; do
             nix shell --inputs-from . nixpkgs#skopeo -c \
               skopeo --insecure-policy \
-              copy --src-daemon-host "http://dind.docker.internal:2375" \
-              --dest-creds "ci-bot:${{ secrets.CI_ANSIBLE_PUSH_TOKEN }}" \
+              copy -- dest-creds "ci-bot:${{ secrets.CI_ANSIBLE_PUSH_TOKEN }}" \
               docker-daemon:$IMAGE:$FORGEJO_SHA \
               docker://$IMAGE_PATH:$tag
           done
