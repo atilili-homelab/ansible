@@ -1,0 +1,48 @@
+#{{ ansible_managed }}
+
+log:
+  level: info # only in runner
+  job_level: info # sent to Forgejo
+
+runner:
+  file: {{ forgejo_runner_home }}/.runner # Where to store the registration result.
+  capacity: 1 # concurent task
+  timeout: 3h
+  shutdown_timeout: 3h
+  insecure: false
+  fetch_timeout: 30s
+  fetch_interval: 2s
+  report_interval: 1s
+  labels:
+    - podman-nix:docker://nixos/nix
+
+cache:
+  enabled: true
+  port: 0
+  dir: {{ forgejo_runner_home }}/.cache/actcache
+  external_server: ""
+  secret: ""
+  secret_url: ""
+  host: ""
+  proxy_port: 0
+  actions_cache_url_override: ""
+
+container:
+  network: ""
+  enable_ipv6: false
+  privileged: false
+  workdir_parent:
+  valid_volumes: []
+  docker_host: unix:///run/user/{{ forgejo_runner_uid }}/podman/podman.sock
+  force_pull: true
+  force_rebuild: false
+
+host:
+  workdir_parent:
+
+server:
+  connections:
+    forgejo:
+      url: https://forge.macopla.com/
+      uuid: 9de71014-9e02-41b1-b4b5-bc5eccb2245f
+      token_url: file:{{ forgejo_runner_home }}/.runner-token

@@ -1,0 +1,88 @@
+---
+- name: Runner - Déposer la clé de signature de Forgejo
+  ansible.builtin.copy:
+    src: forgejo-release.gpg
+    dest: /usr/local/share/forgejo-release.gpg
+    mode: "0644"
+
+- name: Runner - Télécharger le binaire et sa signature
+  ansible.builtin.get_url:
+    url: "{{ forgejo_runner_url }}{{ item }}"
+    dest: "/tmp/forgejo-runner-{{ forgejo_runner_version }}{{ item }}"
+    mode: "0644"
+  loop:
+    - ""
+    - ".asc"
+
+- name: Runner - Vérifier la signature
+  ansible.builtin.command:
+    cmd: >-
+      gpgv --keyring /usr/local/share/forgejo-release.gpg
+      /tmp/forgejo-runner-{{ forgejo_runner_version }}.asc
+      /tmp/forgejo-runner-{{ forgejo_runner_version }}
+  changed_when: false
+
+- name: Runner - Installer le binaire vérifié
+  ansible.builtin.copy:
+    src: "/tmp/forgejo-runner-{{ forgejo_runner_version }}"
+    dest: /usr/local/bin/forgejo-runner
+    remote_src: true
+    mode: "0755"
+  notify: Redémarrer le runner
+
+- name: Runner - Créer l'utilisateur du runner
+  ansible.builtin.user:
+    name: "{{ forgejo_runner_user }}"
+    uid: "{{ forgejo_runner_uid }}"
+    create_home: true
+    state: present
+
+- name: Runner - Garder les services de l'utilisateur actifs sans session ouverte
+  ansible.builtin.command: loginctl enable-linger {{ forgejo_runner_user }}
+  args:
+    creates: /var/lib/systemd/linger/{{ forgejo_runner_user }}
+
+- name: Runner - Activer le socket Podman de l'utilisateur du runner
+  ansible.builtin.systemd_service:
+    name: podman.socket
+    scope: user
+    enabled: true
+    state: started
+  become: true
+  become_user: "{{ forgejo_runner_user }}"
+  environment:
+    XDG_RUNTIME_DIR: "/run/user/{{ forgejo_runner_uid }}"
+
+- name: Runner - Déposer le jeton
+  ansible.builtin.copy:
+    content: "{{ lookup('community.hashi_vault.vault_kv2_get', 'ci/forgejo-runner').secret.token }}"
+    dest: "{{ forgejo_runner_home }}/.runner-token"
+    owner: "{{ forgejo_runner_user }}"
+    group: "{{ forgejo_runner_user }}"
+    mode: "0600"
+  no_log: true
+  notify: Redémarrer le runner
+
+- name: Runner - Configuration du runner
+  ansible.builtin.template:
+    src: runner-config.yml.j2
+    dest: "{{ forgejo_runner_home }}/runner-config.yml"
+    owner: "{{ forgejo_runner_user }}"
+    group: "{{ forgejo_runner_user }}"
+    mode: "0644"
+    backup: true
+  notify: Redémarrer le runner
+
+- name: Runner - Installer le service systemd
+  ansible.builtin.template:
+    src: forgejo-runner.service.j2
+    dest: /etc/systemd/system/forgejo-runner.service
+    mode: "0644"
+  notify: Redémarrer le runner
+
+- name: Runner - Activer et démarrer le runner
+  ansible.builtin.systemd_service:
+    name: forgejo-runner
+    enabled: true
+    state: started
+    daemon_reload: true

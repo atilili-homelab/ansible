@@ -1,0 +1,8 @@
+---
+forgejo_runner_user: runner
+forgejo_runner_uid: 6000
+forgejo_runner_home: "/home/{{ forgejo_runner_user }}"
+forgejo_runner_arch: "{{ {'x86_64': 'amd64', 'aarch64': 'arm64'}.get(ansible_facts['architecture'], ansible_facts['architecture']) }}"
+forgejo_runner_version: "13.2.0"
+forgejo_runner_download: "https://code.forgejo.org/forgejo/runner/releases/download"
+forgejo_runner_url: "{{ forgejo_runner_download }}/v{{ forgejo_runner_version }}/forgejo-runner-{{ forgejo_runner_version }}-linux-{{ forgejo_runner_arch }}"
