@@ -1,5 +1,5 @@
 ---
-- name: Check NTP - Verification chrony sources
+- name: Check NTP - Vérification des sources chrony
   ansible.builtin.command: chronyc sources -v
   register: ntp_check_chrony_sources
   changed_when: false
@@ -10,7 +10,7 @@
     var: ntp_check_chrony_sources.stdout_lines
   when: ntp_check_chrony_sources is not failed
 
-- name: Check NTP - Verification tracking chrony
+- name: Check NTP - Vérification du suivi chrony
   ansible.builtin.command: chronyc tracking
   register: ntp_check_chrony_tracking
   changed_when: false
@@ -21,7 +21,7 @@
     var: ntp_check_chrony_tracking.stdout_lines
   when: ntp_check_chrony_tracking is not failed
 
-- name: Check NTP - Verification desynchro horloge systeme
+- name: Check NTP - Vérification de la désynchronisation de l'horloge système
   ansible.builtin.command: timedatectl status
   register: ntp_check_time_status
   changed_when: false

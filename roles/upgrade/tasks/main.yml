@@ -40,7 +40,7 @@
     test_command: "logger '[ansible]: Reboot par Ansible apres kernel upgrade'"
     reboot_timeout: 300
 
-- name: Upgrade - Supression et clean des paquets inutiles après upgrade
+- name: Upgrade - Suppression des paquets inutiles après la mise à jour
   ansible.builtin.apt:
     autoremove: true
     clean: true

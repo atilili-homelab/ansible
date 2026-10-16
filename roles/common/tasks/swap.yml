@@ -26,7 +26,7 @@
 
 - name: Swap - Check swap status
   ansible.builtin.debug:
-    msg: "Current swap: {{ common_current_swap.stdout | default('Pas de swap configurer') }}"
+    msg: "Current swap: {{ common_current_swap.stdout | default('Pas de swap configuré') }}"
 
 - name: Swap - Créer le swapfile avec dd
   when: not common_swap_check.stat.exists
@@ -54,7 +54,7 @@
   ansible.builtin.command:
     cmd: "swapon {{ common_swap_file_path }}"
 
-- name: Swap - Ajouter le ficher de swap au fstab
+- name: Swap - Ajouter le fichier de swap au fstab
   ansible.posix.mount:
     path: none
     src: "{{ common_swap_file_path }}"
@@ -62,7 +62,7 @@
     opts: sw
     state: present
 
-- name: Swap - Configuration swapiness
+- name: Swap - Configuration swappiness
   ansible.posix.sysctl:
     name: vm.swappiness
     value: "{{ common_swappiness }}"
@@ -70,7 +70,7 @@
     state: present
     reload: true
 
-- name: Swap - Configuration vfs cach pressure
+- name: Swap - Configuration vfs_cache_pressure
   ansible.posix.sysctl:
     name: vm.vfs_cache_pressure
     value: "{{ common_vfs_cache_pressure }}"

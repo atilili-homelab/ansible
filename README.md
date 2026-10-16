@@ -24,7 +24,7 @@ Deux points d'entrée regroupent les playbooks courants :
 
 | Fichier           | Rôle                                                      |
 | ----------------- | --------------------------------------------------------- |
-| `site.yml`        | Configuration complète d'une machine, du socle au cluster |
+| `site.yml`        | Bootstrap : socle, Docker, stockage, NFS et cluster Swarm |
 | `maintenance.yml` | Mises à jour du système et contrôle de la synchro horaire |
 
 Les playbooks de `playbooks/` se lancent aussi un par un :
@@ -54,6 +54,21 @@ Aucun fichier n'est échangé entre OpenTofu et Ansible : ajouter une machine à
 groupe revient à lui poser un tag.
 
 Le VPS, hors du cluster, est décrit dans `inventory/inventory.ovh.ini`.
+
+## Adapter à votre environnement
+
+Le dépôt décrit mon homelab réel. Pour le réutiliser, les valeurs propres au
+site sont regroupées ici :
+
+- `inventory/inventory.proxmox.yml` : URL de l'API Proxmox ;
+- `inventory/group_vars/` : comptes et clés SSH, notifications, serveur PBS,
+  montages NFS ;
+- `ansible.cfg` : adresse d'OpenBao ;
+- les secrets lus dans OpenBao, au chemin donné par chaque `lookup` dans les
+  rôles et playbooks.
+
+Les réglages des rôles sont dans leurs `defaults/` et se surchargent depuis
+l'inventaire.
 
 ## Prérequis
 

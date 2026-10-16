@@ -11,7 +11,7 @@
 - name: Time - Configuration et activation de chrony
   ignore_errors: "{{ ansible_check_mode }}"
   block:
-    - name: Time - Deploiement configuration chrony
+    - name: Time - Déploiement de la configuration chrony
       notify: Restart chrony
       ansible.builtin.template:
         src: chrony.conf.j2
@@ -21,7 +21,7 @@
         mode: "0644"
         backup: true
 
-    - name: Time - Desactiver le controle de l'horloge systeme par chrony (LXC)
+    - name: Time - Désactiver le contrôle de l'horloge système par chrony (LXC)
       ansible.builtin.lineinfile:
         path: /etc/default/chrony
         regexp: "^DAEMON_OPTS="

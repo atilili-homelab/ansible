@@ -21,7 +21,7 @@
         state: present
         create_home: "{{ item.create_home | default(false) }}"
 
-    - name: Users - Creer le repertoire centralisé des clés SSH pour comptes de service
+    - name: Users - Créer le répertoire centralisé des clés SSH des comptes de service
       ansible.builtin.file:
         path: /etc/ssh/authorized_keys
         state: directory
