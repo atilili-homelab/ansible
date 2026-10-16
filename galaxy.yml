@@ -25,7 +25,6 @@ build_ignore:
   - roles/nfs
   - roles/ntp_check
   - roles/openbao
-  - roles/pipx
   - roles/postgresql
   - roles/redis
   - roles/swarm

@@ -1,3 +1,0 @@
----
-- name: Install Pipx
-  ansible.builtin.import_tasks: install.yml

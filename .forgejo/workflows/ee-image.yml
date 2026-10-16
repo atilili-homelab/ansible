@@ -1,4 +1,4 @@
-name: Build EE and Run Tests
+name: Build EE
 on:
   workflow_dispatch:
   push:

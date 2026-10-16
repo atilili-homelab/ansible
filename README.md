@@ -35,10 +35,12 @@ Les playbooks de `playbooks/` se lancent aussi un par un :
 | `upgrade.yml`                | Mise à jour des paquets, redémarrage si nécessaire, notification |
 | `dns-setup.yml`              | Serveurs DNS Technitium                                          |
 | `openbao-setup.yml`          | Installation d'OpenBao                                           |
-| `db-backup.yml`              | Sauvegarde quotidienne des bases de données vers PBS             |
 | `swarm-networks.yml`         | Réseaux overlay du cluster Swarm                                 |
 | `sync-docker-secrets.yml`    | Copie des secrets d'OpenBao vers les secrets Docker Swarm        |
 | `komodo-periphery-setup.yml` | Agent Komodo Periphery sur les hôtes Docker                      |
+| `ci-forgejo-runner.yml`      | Runner Forgejo Actions sans root, sur Podman                     |
+| `db-backup.yml`              | Sauvegarde quotidienne des bases de données vers PBS             |
+| `forgejo-backup.yml`         | Sauvegarde quotidienne de la forge vers PBS                      |
 
 ## Inventaire
 
@@ -114,17 +116,23 @@ Les rôles :
 | --------------------------------- | -------------------------------------------------------- |
 | `common`                          | Paquets de base, chrony, comptes, durcissement SSH, swap |
 | `docker`                          | Installation de Docker et configuration du démon         |
+| `podman`                          | Installation de Podman                                   |
 | `disk_data`                       | Disque de données des workers                            |
 | `glusterfs`, `nfs`                | Stockage partagé et montages réseau                      |
 | `swarm`                           | Initialisation du cluster et étiquettes des nœuds        |
 | `technitium_dns`, `openbao`       | Services d'infrastructure                                |
+| `forgejo_runner`                  | Runner Forgejo Actions sans root, jobs dans Podman       |
+| `pbs_client`                      | Dépôt et client Proxmox Backup Server                    |
+| `forgejo_backup`, `db_backup`     | Sauvegardes de la forge et des bases de données vers PBS |
 | `upgrade`, `upgrade_notification` | Mises à jour et compte rendu par notification            |
-| `ntp_check`, `pipx`               | Contrôle de l'heure, installation de pipx                |
+| `ntp_check`                       | Contrôle de la synchronisation horaire                   |
 
 ## Collection
 
-Les rôles sont aussi distribués sous forme de collection, `homelab.base`, pour
-être réutilisés depuis d'autres dépôts sans y être recopiés.
+Les rôles génériques sont aussi distribués sous forme de collection,
+`homelab.base`, pour être réutilisés depuis d'autres dépôts sans y être
+recopiés. Elle ne contient que `common`, `docker`, `podman` et `pbs_client` ; les
+autres rôles sont propres à ce homelab et restent dans le dépôt.
 
 Le dépôt Packer s'en sert pendant le build des templates : il installe la
 collection à une version donnée et applique les rôles `common` et `docker`, pour
