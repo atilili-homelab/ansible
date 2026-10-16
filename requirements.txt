@@ -1,2 +1,2 @@
 hvac==2.4.0
-ansible-lint==26.10.0
+ansible-lint==26.10.1
