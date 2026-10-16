@@ -24,8 +24,6 @@
   hosts: swarm_managers
   serial: 1
   ignore_unreachable: true
-  vars:
-    upgrade_auto_reboot: false
   roles:
     - upgrade
 
