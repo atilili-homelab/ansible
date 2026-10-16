@@ -1,18 +1,31 @@
 #!/bin/bash
 set -uo pipefail
 
-dir={{ postgres_backup_dir }}
+dir={{ db_backup_dir }}
 failures=()
 
 # Le dossier ne contient que les dumps du jour : PBS garde l'historique
 rm -rf "${dir:?}"/*
 
-{% for target in postgres_backup_targets %}
+{% for target in db_backup_targets %}
 {% set name = target.container.split('_')[1] | regex_replace('-db$', '') %}
 mkdir "$dir/{{ name }}"
 container=$(docker ps -q --filter "name=^{{ target.container }}\.")
 if [ -z "$container" ]; then
   failures+=("{{ name }} (conteneur introuvable)")
+{% if target.engine | default('postgres') == 'mariadb' %}
+else
+  file="$dir/{{ name }}/{{ name }}.sql"
+  # Le mot de passe est lu dans le secret Docker, à l'intérieur du conteneur
+  docker exec "$container" sh -c 'MYSQL_PWD="$(cat "$MARIADB_PASSWORD_FILE")" exec mariadb-dump \
+      -u "$MARIADB_USER" --single-transaction "$MARIADB_DATABASE"' > "$file.tmp"
+  if [ $? -eq 0 ] && tail -n 1 "$file.tmp" | grep -q '^-- Dump completed'; then
+    mv "$file.tmp" "$file"
+  else
+    rm -f "$file.tmp"
+    failures+=("{{ name }} (mariadb-dump)")
+  fi
+{% else %}
 elif ! dbs=$(docker exec "$container" psql -U {{ target.user }} -d postgres -tAc \
     "SELECT datname FROM pg_database WHERE NOT datistemplate AND datname <> 'postgres'"); then
   failures+=("{{ name }} (liste des bases)")
@@ -27,10 +40,11 @@ else
       failures+=("{{ name }}/$db")
     fi
   done
+{% endif %}
 fi
 if [ -n "$(ls -A "$dir/{{ name }}")" ]; then
   proxmox-backup-client backup {{ name }}.pxar:"$dir/{{ name }}" \
-    --ns {{ postgres_backup_pbs_namespace }} \
+    --ns {{ db_backup_pbs_namespace }} \
     --backup-id {{ name }} || failures+=("{{ name }} (envoi vers PBS)")
 fi
 
@@ -39,6 +53,6 @@ if [ -n "${failures[*]}" ]; then
   echo "Échecs : ${failures[*]}" >&2
   curl -fsS -X POST "{{ apprise_url }}" \
     -H "Content-Type: application/json" \
-    -d "{\"title\": \"postgres-backup - ECHEC ({{ inventory_hostname }})\", \"body\": \"${failures[*]}\", \"tag\": \"infra-error\"}"
+    -d "{\"title\": \"db-backup - ECHEC ({{ inventory_hostname }})\", \"body\": \"${failures[*]}\", \"tag\": \"infra-error\"}"
   exit 1
 fi

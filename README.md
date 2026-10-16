@@ -35,7 +35,7 @@ Les playbooks de `playbooks/` se lancent aussi un par un :
 | `upgrade.yml`                | Mise à jour des paquets, redémarrage si nécessaire, notification |
 | `dns-setup.yml`              | Serveurs DNS Technitium                                          |
 | `openbao-setup.yml`          | Installation d'OpenBao                                           |
-| `postgres-backup.yml`        | Sauvegarde quotidienne des bases PostgreSQL vers PBS             |
+| `db-backup.yml`              | Sauvegarde quotidienne des bases de données vers PBS             |
 | `swarm-networks.yml`         | Réseaux overlay du cluster Swarm                                 |
 | `sync-docker-secrets.yml`    | Copie des secrets d'OpenBao vers les secrets Docker Swarm        |
 | `komodo-periphery-setup.yml` | Agent Komodo Periphery sur les hôtes Docker                      |

@@ -1,0 +1,9 @@
+[Unit]
+Description=Sauvegarde des bases de données vers Proxmox Backup Server
+After=docker.service network-online.target
+Wants=network-online.target
+
+[Service]
+Type=oneshot
+EnvironmentFile={{ db_backup_env_file }}
+ExecStart=/usr/local/bin/db-backup

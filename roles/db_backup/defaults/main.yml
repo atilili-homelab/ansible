@@ -1,0 +1,10 @@
+---
+db_backup_dir: /var/backups/databases
+db_backup_env_file: /etc/db-backup.env
+db_backup_pbs_user: "yoann@pbs!databases"
+db_backup_pbs_namespace: Macopla/databases
+db_backup_vault_path: backup/databases-pbs
+db_backup_on_calendar: "*-*-* 01:00:00"
+# Conteneurs à sauvegarder : préfixe du nom (stack_service), utilisateur Postgres,
+# ou engine: mariadb (identifiants lus dans les variables MARIADB_* du conteneur)
+db_backup_targets: []

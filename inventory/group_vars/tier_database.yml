@@ -1,8 +1,9 @@
 common_swappiness: 1
 common_vfs_cache_pressure: 50
 
-postgres_backup_targets:
+db_backup_targets:
   - { container: authentik_authentik-db, user: authentik }
+  - { container: bookstack_bookstack-db, engine: mariadb }
   - { container: immich_immich-db, user: immich }
   - { container: ntfy_ntfy-db, user: ntfy }
   - { container: prometheus_grafana-db, user: grafana }

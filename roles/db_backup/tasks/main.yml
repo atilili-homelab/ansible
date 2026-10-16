@@ -1,0 +1,44 @@
+---
+- name: Sauvegarde bases - Vérifier les cibles
+  ansible.builtin.assert:
+    that: db_backup_targets | length > 0
+    fail_msg: "db_backup_targets est vide : rien à sauvegarder"
+
+- name: Sauvegarde bases - Créer le dossier des dumps
+  ansible.builtin.file:
+    path: "{{ db_backup_dir }}"
+    state: directory
+    mode: "0700"
+
+- name: Sauvegarde bases - Déposer les accès à PBS
+  ansible.builtin.copy:
+    content: |
+      PBS_REPOSITORY='{{ db_backup_pbs_user }}@{{ pbs_server }}:{{ pbs_datastore }}'
+      PBS_FINGERPRINT='{{ pbs_fingerprint }}'
+      PBS_PASSWORD='{{ lookup('community.hashi_vault.vault_kv2_get', db_backup_vault_path).secret.secret }}'
+    dest: "{{ db_backup_env_file }}"
+    mode: "0600"
+  no_log: true
+
+- name: Sauvegarde bases - Installer le script
+  ansible.builtin.template:
+    src: db-backup.sh.j2
+    dest: /usr/local/bin/db-backup
+    mode: "0750"
+
+- name: Sauvegarde bases - Installer le service et le timer
+  ansible.builtin.template:
+    src: "db-backup.{{ item }}.j2"
+    dest: "/etc/systemd/system/db-backup.{{ item }}"
+    mode: "0644"
+  loop:
+    - service
+    - timer
+
+- name: Sauvegarde bases - Activer le timer
+  ansible.builtin.systemd_service:
+    name: db-backup.timer
+    enabled: true
+    state: started
+    daemon_reload: true
+  ignore_errors: "{{ ansible_check_mode }}"

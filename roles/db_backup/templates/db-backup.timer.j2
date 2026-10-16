@@ -1,0 +1,9 @@
+[Unit]
+Description=Sauvegarde quotidienne des bases de données
+
+[Timer]
+OnCalendar={{ db_backup_on_calendar }}
+Persistent=true
+
+[Install]
+WantedBy=timers.target
