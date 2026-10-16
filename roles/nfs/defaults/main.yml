@@ -1,0 +1,4 @@
+---
+# Montages et pools mergerfs : définis dans l'inventaire (group_vars/nfs_media.yml)
+nfs_client_mounts: []
+nfs_client_mergerfs_pools: []

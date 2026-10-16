@@ -1,7 +1,7 @@
 ---
 namespace: homelab
 name: base
-version: 1.0.0
+version: 2.0.0
 readme: README.md
 repository: https://forge.macopla.com/homelab/ansible
 tags: [linux, infrastructure]
@@ -11,12 +11,46 @@ description: Rôles de base du homelab
 license:
   - MIT
 dependencies:
+  ansible.posix: ">=2.0.0"
   community.general: ">=13.0.0"
-  community.docker: ">=5.0.0"
 build_ignore:
+  # Seuls common, docker, podman et pbs_client sont publiés dans la collection
+  - roles/db_backup
+  - roles/disk_data
+  - roles/forgejo_backup
+  - roles/forgejo_runner
+  - roles/glusterfs
+  - roles/mariadb
+  - roles/mongodb
+  - roles/nfs
+  - roles/ntp_check
+  - roles/openbao
+  - roles/pipx
+  - roles/postgresql
+  - roles/redis
+  - roles/swarm
+  - roles/technitium_dns
+  - roles/upgrade
+  - roles/upgrade_notification
   - inventory
   - playbooks
   - site.yml
   - maintenance.yml
-  - .forgejo
   - context
+  - .ansible
+  - .direnv
+  - .forgejo
+  - .envrc
+  - .gitignore
+  - .ansible-lint
+  - .pre-commit-config.yaml
+  - ansible.cfg
+  - ansible-navigator.yml
+  - ansible-navigator.log
+  - execution-environment.yml
+  - bindep.txt
+  - requirements.txt
+  - requirements.yml
+  - renovate.json
+  - flake.nix
+  - flake.lock

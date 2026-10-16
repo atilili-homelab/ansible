@@ -1,2 +1,28 @@
+---
 common_swappiness: 60
 common_vfs_cache_pressure: 100
+
+# SSHD
+common_sshd_settings:
+  AuthorizedKeysFile: ".ssh/authorized_keys /etc/ssh/authorized_keys/%u"
+  AllowGroups: "{{ ssh_groups | join(' ') }}"
+  PermitRootLogin: "no"
+  PasswordAuthentication: "no"
+  PermitEmptyPasswords: "no"
+  MaxAuthTries: "6"
+  X11Forwarding: "no"
+  ClientAliveInterval: "300"
+  ClientAliveCountMax: "0"
+  Ciphers: "chacha20-poly1305@openssh.com,aes256-gcm@openssh.com,aes128-gcm@openssh.com,aes256-ctr,aes192-ctr,aes128-ctr"
+
+# Time:
+common_ntp_servers:
+  - 0.pool.ntp.org
+  - 1.pool.ntp.org
+  - 2.pool.ntp.org
+  - 3.pool.ntp.org
+common_ntp_timezone: UTC
+
+# Swap:
+common_swap_file_path: /swapfile
+common_swap_file_size_mb: "{{ (ansible_facts['memtotal_mb'] <= 4096) | ternary(ansible_facts['memtotal_mb'], (ansible_facts['memtotal_mb'] / 2) | int) }}"
