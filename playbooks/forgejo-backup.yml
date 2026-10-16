@@ -6,4 +6,5 @@
   gather_subset:
     - min
   roles:
+    - pbs_client
     - forgejo_backup

@@ -1,0 +1,23 @@
+---
+- name: PBS client - Déposer la clé du dépôt Proxmox
+  ansible.builtin.copy:
+    src: proxmox-archive-keyring-trixie.gpg
+    dest: /etc/apt/keyrings/proxmox-archive-keyring.gpg
+    mode: "0644"
+
+- name: PBS client - Ajouter le dépôt pbs-client
+  ansible.builtin.deb822_repository:
+    name: pbs-client
+    types: deb
+    uris: http://download.proxmox.com/debian/pbs-client
+    suites: "{{ ansible_facts['distribution_release'] }}"
+    components: main
+    signed_by: /etc/apt/keyrings/proxmox-archive-keyring.gpg
+    state: present
+
+- name: PBS client - Installer le client Proxmox Backup
+  ansible.builtin.apt:
+    name: proxmox-backup-client
+    state: present
+    update_cache: true
+  ignore_errors: "{{ ansible_check_mode }}"

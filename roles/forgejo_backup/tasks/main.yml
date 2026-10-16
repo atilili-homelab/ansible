@@ -1,21 +1,4 @@
 ---
-- name: Sauvegarde Forgejo - Ajouter le dépôt pbs-client
-  ansible.builtin.deb822_repository:
-    name: pbs-client
-    types: deb
-    uris: http://download.proxmox.com/debian/pbs-client
-    suites: "{{ ansible_facts['distribution_release'] }}"
-    components: main
-    signed_by: /usr/share/keyrings/proxmox-archive-keyring.gpg
-    state: present
-
-- name: Sauvegarde Forgejo - Installer le client Proxmox Backup
-  ansible.builtin.apt:
-    name: proxmox-backup-client
-    state: present
-    update_cache: true
-  ignore_errors: "{{ ansible_check_mode }}"
-
 - name: Sauvegarde Forgejo - Créer le dossier des dumps
   ansible.builtin.file:
     path: "{{ forgejo_backup_dir }}"
@@ -25,8 +8,8 @@
 - name: Sauvegarde Forgejo - Déposer les accès à PBS
   ansible.builtin.copy:
     content: |
-      PBS_REPOSITORY='{{ forgejo_backup_pbs_repository }}'
-      PBS_FINGERPRINT='{{ forgejo_backup_pbs_fingerprint }}'
+      PBS_REPOSITORY='{{ forgejo_backup_pbs_user }}@{{ pbs_server }}:{{ pbs_datastore }}'
+      PBS_FINGERPRINT='{{ pbs_fingerprint }}'
       PBS_PASSWORD='{{ lookup('community.hashi_vault.vault_kv2_get', 'backup/forgejo-pbs').secret.secret }}'
     dest: "{{ forgejo_backup_env_file }}"
     mode: "0600"

@@ -1,2 +1,12 @@
 common_swappiness: 1
 common_vfs_cache_pressure: 50
+
+postgres_backup_targets:
+  - { container: authentik_authentik-db, user: authentik }
+  - { container: immich_immich-db, user: immich }
+  - { container: ntfy_ntfy-db, user: ntfy }
+  - { container: prometheus_grafana-db, user: grafana }
+  - { container: prowlarr_prowlarr-db, user: prowlarr }
+  - { container: radarr_radarr-db, user: radarr }
+  - { container: sonarr_sonarr-db, user: sonarr }
+  - { container: tracearr_tracearr-db, user: tracearr }

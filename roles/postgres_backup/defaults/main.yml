@@ -1,0 +1,9 @@
+---
+postgres_backup_dir: /var/backups/postgres
+postgres_backup_env_file: /etc/postgres-backup.env
+postgres_backup_pbs_user: "yoann@pbs!postgres"
+postgres_backup_pbs_namespace: Macopla/postgres
+postgres_backup_vault_path: backup/postgres-pbs
+postgres_backup_on_calendar: "*-*-* 01:00:00"
+# Conteneurs à sauvegarder : préfixe du nom (stack_service) et utilisateur Postgres
+postgres_backup_targets: []

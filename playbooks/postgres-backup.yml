@@ -1,0 +1,10 @@
+---
+- name: Sauvegarde Postgres - Dump quotidien vers PBS
+  hosts: tier_database
+  tags: postgres_backup
+  gather_facts: true
+  gather_subset:
+    - min
+  roles:
+    - pbs_client
+    - postgres_backup

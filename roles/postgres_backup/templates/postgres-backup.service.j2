@@ -1,0 +1,9 @@
+[Unit]
+Description=Sauvegarde des bases Postgres vers Proxmox Backup Server
+After=docker.service network-online.target
+Wants=network-online.target
+
+[Service]
+Type=oneshot
+EnvironmentFile={{ postgres_backup_env_file }}
+ExecStart=/usr/local/bin/postgres-backup

@@ -1,0 +1,41 @@
+#!/bin/bash
+set -uo pipefail
+
+dir={{ postgres_backup_dir }}
+failures=()
+
+# Le dossier ne contient que les dumps du jour : PBS garde l'historique
+rm -f "$dir"/*.dump "$dir"/*.tmp
+
+{% for target in postgres_backup_targets %}
+container=$(docker ps -q --filter "name=^{{ target.container }}\.")
+if [ -z "$container" ]; then
+  failures+=("{{ target.container }} (conteneur introuvable)")
+elif ! dbs=$(docker exec "$container" psql -U {{ target.user }} -d postgres -tAc \
+    "SELECT datname FROM pg_database WHERE NOT datistemplate AND datname <> 'postgres'"); then
+  failures+=("{{ target.container }} (liste des bases)")
+else
+  for db in $dbs; do
+    file="$dir/{{ target.container }}_$db.dump"
+    if docker exec "$container" pg_dump -Fc -U {{ target.user }} -d "$db" > "$file.tmp" \
+        && docker exec -i "$container" pg_restore --list < "$file.tmp" > /dev/null; then
+      mv "$file.tmp" "$file"
+    else
+      rm -f "$file.tmp"
+      failures+=("{{ target.container }}/$db")
+    fi
+  done
+fi
+
+{% endfor %}
+proxmox-backup-client backup postgres.pxar:"$dir" \
+  --ns {{ postgres_backup_pbs_namespace }} \
+  --backup-id postgres || failures+=("envoi vers PBS")
+
+if [ -n "${failures[*]}" ]; then
+  echo "Échecs : ${failures[*]}" >&2
+  curl -fsS -X POST "{{ apprise_url }}" \
+    -H "Content-Type: application/json" \
+    -d "{\"title\": \"postgres-backup - ECHEC ({{ inventory_hostname }})\", \"body\": \"${failures[*]}\", \"tag\": \"infra-error\"}"
+  exit 1
+fi

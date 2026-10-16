@@ -1,0 +1,9 @@
+[Unit]
+Description=Sauvegarde quotidienne des bases Postgres
+
+[Timer]
+OnCalendar={{ postgres_backup_on_calendar }}
+Persistent=true
+
+[Install]
+WantedBy=timers.target
