@@ -17,3 +17,4 @@
     regexp: "^#?\\s*requirepass"
     line: "requirepass {{ redis_password }}"
   notify: Redémarrer Redis
+  no_log: true
