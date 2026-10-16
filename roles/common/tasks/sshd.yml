@@ -1,39 +1,13 @@
 ---
-- name: SSHD - Sauvegarder sshd_config avant modification
-  ansible.builtin.copy:
-    src: "{{ common_ssh_hardening_sshd_config_path }}"
-    dest: "{{ common_ssh_hardening_sshd_backup_path }}"
-    remote_src: true
-    mode: "0600"
-
-- name: SSHD - SSH Hardening
-  block:
-    - name: SSHD - Appliquer la configuration durcie
-      notify:
-        - Restart sshd
-        - Sauvegarde de sshd_config après modifications
-      ansible.builtin.lineinfile:
-        path: "{{ common_ssh_hardening_sshd_config_path }}"
-        regexp: "^#?{{ item.key }}"
-        line: "{{ item.key }} {{ item.value }}"
-        validate: "sshd -t -f %s"
-      loop: "{{ common_sshd_settings | dict2items }}"
-      loop_control:
-        label: "{{ item.key }}"
-
-  rescue:
-    - name: SSHD - Restaurer sshd_config depuis la sauvegarde
-      ansible.builtin.copy:
-        src: "{{ common_ssh_hardening_sshd_backup_path }}"
-        dest: "{{ common_ssh_hardening_sshd_config_path }}"
-        remote_src: true
-        mode: "0600"
-
-    - name: SSHD - Signaler l'échec du Hardening SSH
-      ansible.builtin.fail:
-        msg: >-
-          Échec sur {{ ansible_failed_task.name }}, sshd_config restauré :
-          {{ ansible_failed_result.msg | default('voir stderr') }}
+# Les fichiers de sshd_config.d sont lus avant sshd_config, et sshd garde la première
+# valeur trouvée : le préfixe 00- passe devant les fichiers des images (50-cloud-init.conf)
+- name: SSHD - Déposer la configuration durcie
+  ansible.builtin.template:
+    src: sshd-hardening.conf.j2
+    dest: /etc/ssh/sshd_config.d/00-hardening.conf
+    mode: "0644"
+    validate: "sshd -t -f %s"
+  notify: Restart sshd
 
 - name: SSHD - Appliquer le restart de sshd
   ansible.builtin.meta: flush_handlers

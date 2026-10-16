@@ -4,13 +4,6 @@
     name: sshd
     state: restarted
 
-- name: Sauvegarde de sshd_config après modifications
-  ansible.builtin.copy:
-    src: "{{ common_ssh_hardening_sshd_config_path }}"
-    dest: "{{ common_ssh_hardening_sshd_backup_path }}"
-    remote_src: true
-    mode: "0600"
-
 - name: Restart chrony
   ignore_errors: "{{ ansible_check_mode }}"
   ansible.builtin.service:
