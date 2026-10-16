@@ -24,5 +24,9 @@
           Échec sur la tâche {{ ansible_failed_task.name }} :
           {{ ansible_failed_result.msg | default('voir stderr') }}
 
+    - name: Docker - Arrêter sur une configuration invalide
+      ansible.builtin.fail:
+        msg: "daemon.json refusé par dockerd --validate, configuration non appliquée"
+
 - name: Appliquer le restart de Docker
   ansible.builtin.meta: flush_handlers
