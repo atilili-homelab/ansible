@@ -22,7 +22,7 @@
 - name: Télécharger et installer le paquet OpenBao
   ansible.builtin.apt:
     deb: "https://github.com/openbao/openbao/releases/download/v{{ openbao_version }}/openbao_{{ openbao_version }}_linux_amd64.deb"
-  notify: restart openbao
+  notify: Restart openbao
 
 - name: Déployer la configuration
   ansible.builtin.template:
@@ -31,7 +31,7 @@
     owner: openbao
     group: openbao
     mode: "0640"
-  notify: restart openbao
+  notify: Restart openbao
 
 - name: Activer et démarrer OpenBao
   ansible.builtin.systemd:
