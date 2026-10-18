@@ -1,0 +1,45 @@
+# {{ ansible_managed }}
+[Unit]
+Description=Harmonia, cache binaire Nix
+Documentation=https://github.com/nix-community/harmonia
+After=network-online.target nix-daemon.service
+Wants=network-online.target
+
+[Service]
+Type=notify
+WatchdogSec=15
+ExecStart={{ harmonia_install_dir }}/bin/harmonia-cache
+Environment=CONFIG_FILE={{ harmonia_config_dir }}/harmonia.toml
+Environment=RUST_LOG=info
+User={{ harmonia_user }}
+Group={{ harmonia_user }}
+Restart=on-failure
+RestartSec=10
+LimitNOFILE=65536
+
+UMask=0077
+NoNewPrivileges=true
+CapabilityBoundingSet=
+ProtectSystem=strict
+ProtectHome=true
+PrivateTmp=true
+PrivateDevices=true
+ProtectKernelModules=true
+ProtectKernelTunables=true
+ProtectKernelLogs=true
+ProtectControlGroups=true
+ProtectClock=true
+ProtectHostname=true
+ProtectProc=invisible
+ProcSubset=pid
+RestrictNamespaces=true
+RestrictRealtime=true
+RestrictAddressFamilies=AF_INET AF_INET6 AF_UNIX
+LockPersonality=true
+MemoryDenyWriteExecute=true
+SystemCallArchitectures=native
+SystemCallFilter=@system-service
+SystemCallFilter=~@privileged @resources
+
+[Install]
+WantedBy=multi-user.target

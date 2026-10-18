@@ -1,0 +1,4 @@
+# {{ ansible_managed }}
+bind = "[::]:{{ harmonia_port }}"
+priority = {{ harmonia_priority }}
+sign_key_paths = ["{{ harmonia_config_dir }}/cache.secret"]

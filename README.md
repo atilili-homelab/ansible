@@ -38,7 +38,7 @@ Les playbooks de `playbooks/` se lancent aussi un par un :
 | `swarm-networks.yml`         | Réseaux overlay du cluster Swarm                                 |
 | `sync-docker-secrets.yml`    | Copie des secrets d'OpenBao vers les secrets Docker Swarm        |
 | `komodo-periphery-setup.yml` | Agent Komodo Periphery sur les hôtes Docker                      |
-| `ci-forgejo-runner.yml`      | Runner Forgejo Actions sans root, sur Podman                     |
+| `ci-forgejo-runner.yml`      | Runner Forgejo Actions sur Podman, Nix et cache Harmonia         |
 | `db-backup.yml`              | Sauvegarde quotidienne des bases de données vers PBS             |
 | `forgejo-backup.yml`         | Sauvegarde quotidienne de la forge vers PBS                      |
 
@@ -100,6 +100,21 @@ Aucun secret n'est stocké dans ce dépôt.
   `ansible` dans Bitwarden via rbw et les exporte pour Ansible. L'adresse
   d'OpenBao et la méthode d'authentification sont dans `ansible.cfg`.
 
+### Clé de signature d'Harmonia
+
+Le rôle `harmonia` lit la clé dans OpenBao (`ci/harmonia`, champ `secret_key`)
+mais ne la génère pas. À faire une seule fois, avant le premier passage :
+
+```bash
+nix key generate-secret --key-name mouse.macopla.home-1 > cache.secret
+bao kv put -mount=secret ci/harmonia secret_key=@cache.secret
+nix key convert-secret-to-public < cache.secret   # clé publique pour les laptops
+shred -u cache.secret
+```
+
+Les laptops déclarent `http://mouse.macopla.home:5000` dans `substituters` et la
+clé publique dans `trusted-public-keys`.
+
 ## Utilisation
 
 ```bash
@@ -137,6 +152,8 @@ Les rôles :
 | `swarm`                           | Initialisation du cluster et étiquettes des nœuds        |
 | `technitium_dns`, `openbao`       | Services d'infrastructure                                |
 | `forgejo_runner`                  | Runner Forgejo Actions sans root, jobs dans Podman       |
+| `nix`                             | Nix (paquets Debian) sur disque dédié `/nix`             |
+| `harmonia`                        | Cache binaire Nix servant `/nix/store` en HTTP           |
 | `pbs_client`                      | Dépôt et client Proxmox Backup Server                    |
 | `forgejo_backup`, `db_backup`     | Sauvegardes de la forge et des bases de données vers PBS |
 | `upgrade`, `upgrade_notification` | Mises à jour et compte rendu par notification            |

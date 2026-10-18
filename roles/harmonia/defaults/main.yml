@@ -1,0 +1,12 @@
+---
+# Tag amont : harmonia-v<version>
+harmonia_version: "3.3.0"
+harmonia_user: harmonia
+harmonia_uid: 6001
+harmonia_port: 5000
+# Priorité annoncée dans /nix-cache-info : plus bas = préféré (cache.nixos.org : 40)
+harmonia_priority: 30
+# Chemin du secret dans OpenBao ; le champ attendu est secret_key.
+# Clé créée à la main une seule fois, voir le README du dépôt (section Harmonia)
+harmonia_vault_path: ci/harmonia
+harmonia_config_dir: /etc/harmonia

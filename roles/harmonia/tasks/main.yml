@@ -1,0 +1,82 @@
+---
+# Les inputs du flake (nixpkgs en git+https) demandent git
+- name: Harmonia - Installer git
+  ansible.builtin.apt:
+    name: git
+    state: present
+    update_cache: true
+
+- name: Harmonia - Créer l'utilisateur du service
+  ansible.builtin.user:
+    name: "{{ harmonia_user }}"
+    uid: "{{ harmonia_uid }}"
+    system: true
+    create_home: false
+    shell: /usr/sbin/nologin
+    state: present
+
+# Le lien de sortie est une racine du GC : il protège Harmonia de nix-collect-garbage
+- name: Harmonia - Construire la version {{ harmonia_version }}
+  ansible.builtin.command:
+    cmd: nix build {{ harmonia_flake_ref | quote }} --out-link {{ harmonia_install_dir }}
+    creates: "{{ harmonia_install_dir }}"
+  environment:
+    HOME: /root
+  async: 3600
+  poll: 15
+  notify: Redémarrer Harmonia
+
+- name: Harmonia - Lister les anciennes versions
+  ansible.builtin.find:
+    paths: /opt
+    patterns: "harmonia-*"
+    excludes: "{{ harmonia_install_dir | basename }}"
+    file_type: link
+  register: harmonia_old_links
+
+- name: Harmonia - Libérer les anciennes versions pour le GC
+  ansible.builtin.file:
+    path: "{{ item.path }}"
+    state: absent
+  loop: "{{ harmonia_old_links.files }}"
+  loop_control:
+    label: "{{ item.path }}"
+
+- name: Harmonia - Créer le dossier de configuration
+  ansible.builtin.file:
+    path: "{{ harmonia_config_dir }}"
+    state: directory
+    mode: "0755"
+
+- name: Harmonia - Déposer la clé de signature
+  ansible.builtin.copy:
+    content: "{{ lookup('community.hashi_vault.vault_kv2_get', harmonia_vault_path).secret.secret_key }}"
+    dest: "{{ harmonia_config_dir }}/cache.secret"
+    owner: "{{ harmonia_user }}"
+    group: "{{ harmonia_user }}"
+    mode: "0600"
+  no_log: true
+  notify: Redémarrer Harmonia
+
+- name: Harmonia - Configuration
+  ansible.builtin.template:
+    src: harmonia.toml.j2
+    dest: "{{ harmonia_config_dir }}/harmonia.toml"
+    mode: "0644"
+  notify: Redémarrer Harmonia
+
+- name: Harmonia - Installer le service systemd
+  ansible.builtin.template:
+    src: harmonia.service.j2
+    dest: /etc/systemd/system/harmonia.service
+    mode: "0644"
+  notify: Redémarrer Harmonia
+
+# La base db.sqlite n'existe qu'après la première commande Nix (le build ci-dessus) ;
+# Harmonia refuse de démarrer sans elle
+- name: Harmonia - Activer et démarrer le service
+  ansible.builtin.systemd_service:
+    name: harmonia
+    enabled: true
+    state: started
+    daemon_reload: true

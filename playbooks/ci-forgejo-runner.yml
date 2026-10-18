@@ -25,3 +25,12 @@
     - min
   roles:
     - nix
+
+- name: Runner - Cache binaire Harmonia
+  hosts: ci
+  tags: harmonia
+  gather_facts: true
+  gather_subset:
+    - min
+  roles:
+    - harmonia

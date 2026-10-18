@@ -1,0 +1,3 @@
+---
+harmonia_install_dir: "/opt/harmonia-{{ harmonia_version }}"
+harmonia_flake_ref: "github:nix-community/harmonia/harmonia-v{{ harmonia_version }}#harmonia"
