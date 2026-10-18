@@ -3,3 +3,6 @@ nix_disk_device: /dev/disk/by-id/scsi-0QEMU_QEMU_HARDDISK_drive-scsi1
 nix_mount_path: /nix
 nix_users:
   - runner
+# GC automatique pendant les builds : sous nix_min_free octets libres, Nix libère jusqu'à nix_max_free
+nix_min_free: "{{ 10 * 1024 ** 3 }}"
+nix_max_free: "{{ 30 * 1024 ** 3 }}"

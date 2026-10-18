@@ -1,5 +1,5 @@
 ---
-# Tag amont : harmonia-v<version>
+# renovate: datasource=github-tags depName=nix-community/harmonia extractVersion=^harmonia-v(?<version>.+)$
 harmonia_version: "3.3.0"
 harmonia_user: harmonia
 harmonia_uid: 6001

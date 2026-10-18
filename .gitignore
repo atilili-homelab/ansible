@@ -4,3 +4,28 @@
 context/
 result
 /ansible-navigator.log
+
+# Clé de signature Harmonia (générée à la main, cf. README) : un shred oublié = clé privée commitée
+cache.secret
+*.secret
+
+# Mot de passe Ansible Vault
+.vault_pass*
+.vault-password*
+vault-password*
+
+# Variables d'environnement locales
+.env
+.env.*
+
+# Clés et certificats privés
+*.pem
+*.key
+*.p12
+*.pfx
+id_ed25519*
+id_rsa*
+!*.pub
+
+# Artefacts ansible-navigator : toute la sortie du playbook, secrets compris
+*-artifact-*.json
