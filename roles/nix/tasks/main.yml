@@ -1,0 +1,78 @@
+---
+- name: Nix - Vérifier que le disque dédié est présent
+  ansible.builtin.stat:
+    path: "{{ nix_disk_device }}"
+  register: nix_disk_stat
+  failed_when: not nix_disk_stat.stat.exists
+
+- name: Nix - Vérifier si le point de montage est déjà actif
+  ansible.builtin.command: mountpoint -q {{ nix_mount_path }}
+  register: nix_mounted
+  failed_when: false
+  changed_when: false
+
+- name: Nix - Vérifier que le store ne se trouve pas déjà sur le disque système
+  ansible.builtin.stat:
+    path: "{{ nix_mount_path }}/store"
+  register: nix_store_stat
+  when: nix_mounted.rc != 0
+
+- name: Nix - Refuser de masquer un store existant
+  ansible.builtin.fail:
+    msg: >-
+      {{ nix_mount_path }}/store existe déjà sur le disque système :
+      le monter par-dessus le masquerait. Migrer ou supprimer son contenu d'abord.
+  when: nix_mounted.rc != 0 and nix_store_stat.stat.exists
+
+- name: Nix - Créer le système de fichiers ext4 (sans jamais reformater)
+  community.general.filesystem:
+    dev: "{{ nix_disk_device }}"
+    fstype: ext4
+    opts: "-L nix"
+
+- name: Nix - Lire l'UUID du système de fichiers
+  ansible.builtin.command: blkid -s UUID -o value {{ nix_disk_device }}
+  register: nix_disk_uuid
+  changed_when: false
+
+- name: Nix - Monter le disque par UUID sur {{ nix_mount_path }}
+  ansible.posix.mount:
+    path: "{{ nix_mount_path }}"
+    src: "UUID={{ nix_disk_uuid.stdout }}"
+    fstype: ext4
+    opts: defaults,nofail
+    state: mounted
+
+- name: Nix - Installer Nix et son intégration systemd
+  ansible.builtin.apt:
+    name:
+      - nix-bin
+      - nix-setup-systemd
+    state: present
+    update_cache: true
+
+- name: Nix - Ajouter les utilisateurs au groupe nix-users
+  ansible.builtin.user:
+    name: "{{ item }}"
+    groups: nix-users
+    append: true
+  loop: "{{ nix_users }}"
+
+- name: Nix - Configuration du daemon
+  ansible.builtin.template:
+    src: nix.conf.j2
+    dest: /etc/nix/nix.conf
+    mode: "0644"
+  notify: Redémarrer le daemon Nix
+
+# Le postinst Debian démarre le service directement : le socket refuse alors
+# de démarrer tant que le service tourne, il ne prend le relais qu'au boot
+- name: Nix - Activer le socket du daemon
+  ansible.builtin.systemd_service:
+    name: nix-daemon.socket
+    enabled: true
+
+- name: Nix - Démarrer le daemon
+  ansible.builtin.systemd_service:
+    name: nix-daemon.service
+    state: started

@@ -30,6 +30,15 @@
     mode: "0755"
   notify: Redémarrer le runner
 
+# Les jobs en label host utilisent le node et le git de la machine (actions/checkout)
+- name: Runner - Installer les dépendances des jobs host
+  ansible.builtin.apt:
+    name:
+      - git
+      - nodejs
+    state: present
+    update_cache: true
+
 - name: Runner - Créer l'utilisateur du runner
   ansible.builtin.user:
     name: "{{ forgejo_runner_user }}"

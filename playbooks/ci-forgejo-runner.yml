@@ -16,3 +16,12 @@
     - min
   roles:
     - forgejo_runner
+
+- name: Runner - Installation de Nix
+  hosts: ci
+  tags: nix
+  gather_facts: true
+  gather_subset:
+    - min
+  roles:
+    - nix
