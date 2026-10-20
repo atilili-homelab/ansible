@@ -7,6 +7,7 @@
 - [Prérequis](#prérequis)
 - [Secrets](#secrets)
 - [Utilisation](#utilisation)
+- [Intégration continue](#intégration-continue)
 - [Structure](#structure)
 - [Collection](#collection)
 
@@ -17,6 +18,19 @@ conteneurs LXC de mon cluster Proxmox VE, ainsi qu'un VPS OVH.
 
 C'est la troisième partie de la chaîne : Packer construit les templates,
 OpenTofu les clone pour créer les machines, puis Ansible les configure.
+
+```mermaid
+flowchart LR
+    packer[Packer] -->|template| tofu[OpenTofu]
+    tofu -->|machines et tags| ansible[Ansible]
+    base[Collection homelab.base] -.->|socle| packer
+    base -.->|socle| ansible
+    ansible -->|cluster| swarm[Docker Swarm]
+```
+
+Les tags posés par OpenTofu deviennent les groupes de l'inventaire, et le socle
+d'une machine vient de la même collection qu'elle soit posée au build du
+template ou au bootstrap.
 
 ## Ce que fait le dépôt
 
@@ -125,6 +139,26 @@ ansible-playbook site.yml --check --diff        # simulation, sans rien modifier
 ansible-playbook site.yml --limit <machine>     # applique sur une seule machine
 ansible-playbook maintenance.yml --tags upgrade # mises à jour seules
 ```
+
+## Intégration continue
+
+La CI tourne sur Forgejo Actions, sur un runner sans root qui exécute ses jobs
+dans Podman. Ce runner est lui-même installé par ce dépôt
+(`playbooks/ci-forgejo-runner.yml`), et les workflows sont dans
+`.forgejo/workflows/`.
+
+| Workflow       | Déclencheur                                                   | Ce qu'il fait                                                                                                            |
+| -------------- | ------------------------------------------------------------- | ------------------------------------------------------------------------------------------------------------------------ |
+| `ci.yml`       | push sur une branche autre que `main`                         | gitleaks sur les commits de la branche, pre-commit sur tous les fichiers, puis ansible-lint dans l'image d'exécution      |
+| `ee-image.yml` | push sur `main` touchant la définition de l'image, ou manuel  | construit l'image d'exécution, liste les collections, vérifie les dépendances Python par `pip check`, puis la pousse      |
+
+Deux choix à noter :
+
+- ansible-lint ne tourne pas dans l'environnement de la CI mais dans l'image
+  d'exécution qui sert ensuite à jouer les playbooks, pour que le linter voie
+  les mêmes collections que l'exécution réelle.
+- Les actions tierces sont épinglées par empreinte et non par étiquette, pour
+  qu'une étiquette redéplacée ne change pas le contenu d'un job.
 
 ## Structure
 
