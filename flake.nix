@@ -27,7 +27,7 @@
         packages =
           checkTools pkgs
           ++ (with pkgs; [
-            openbao # connexion AppRole dans .envrc
+            openbao # connexion Openbao dans .envrc
             ansible-navigator
             podman
           ]);

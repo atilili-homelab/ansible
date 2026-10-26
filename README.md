@@ -87,8 +87,8 @@ l'inventaire.
 ## Prérequis
 
 - **Nix** avec les flakes activés, et **direnv**.
-- **rbw** (client Bitwarden CLI) déverrouillé : il fournit les identifiants
-  AppRole d'OpenBao.
+- **rbw** (client Bitwarden CLI) déverrouillé : il fournit le mot de passe
+  OpenBao de l'utilisateur `yoann`, si aucune session n'est ouverte.
 - Un accès réseau à **OpenBao**, à l'**API Proxmox** et aux machines en SSH.
 
 Les outils (ansible, ansible-lint, ansible-builder, pre-commit, gitleaks, client
@@ -110,9 +110,13 @@ Aucun secret n'est stocké dans ce dépôt.
 - Les mots de passe et les tokens sont lus dans OpenBao au moment de
   l'exécution, par le plugin `community.hashi_vault`. Le token de l'API Proxmox
   utilisé par l'inventaire suit le même chemin.
-- À l'entrée dans le dossier, `.envrc` lit les identifiants de l'AppRole
-  `ansible` dans Bitwarden via rbw et les exporte pour Ansible. L'adresse
-  d'OpenBao et la méthode d'authentification sont dans `ansible.cfg`.
+- À l'entrée dans le dossier, `.envrc` réutilise la session OpenBao de `yoann`
+  (`~/.vault-token`, partagée avec les dépôts opentofu et packer), ou l'ouvre
+  avec le mot de passe lu dans Bitwarden via rbw. Il en dérive un token enfant
+  valable une heure, limité à `ansible-policy`, et l'exporte dans
+  `VAULT_TOKEN` ; `ansible-navigator.yml` le transmet à l'execution
+  environment. L'adresse d'OpenBao et la méthode d'authentification (`token`)
+  sont dans `ansible.cfg`.
 
 ### Clé de signature d'Harmonia
 
