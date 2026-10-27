@@ -1,11 +1,11 @@
 plugin: community.proxmox.proxmox
 url: https://pve.macopla.com
 user: ansible@pve
-token_id: inventory
+token_id: ansible
 token_secret: >-
   {{
     lookup('community.hashi_vault.vault_kv2_get',
-    'ansible/proxmox').secret.token_secret
+    'ansible/proxmox-token').secret.token
   }}
 
 want_facts: true
