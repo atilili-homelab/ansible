@@ -1,0 +1,34 @@
+---
+- name: Certbot - Installer certbot et son plugin Cloudflare
+  ansible.builtin.apt:
+    name:
+      - certbot
+      - python3-certbot-dns-cloudflare
+    state: present
+
+- name: Certbot - Créer le dossier de certbot
+  ansible.builtin.file:
+    path: /etc/letsencrypt
+    state: directory
+    owner: root
+    group: root
+    mode: "0755"
+
+- name: Certbot - Déposer le token Cloudflare
+  ansible.builtin.copy:
+    content: |
+      dns_cloudflare_api_token = {{ lookup('community.hashi_vault.vault_kv2_get', certbot_vault_path).secret.token }}
+    dest: "{{ certbot_credentials }}"
+    owner: root
+    group: root
+    mode: "0600"
+  no_log: true
+
+- name: Certbot - Obtenir le certificat
+  ansible.builtin.command:
+    cmd: >-
+      certbot certonly --non-interactive --agree-tos
+      --register-unsafely-without-email
+      --dns-cloudflare --dns-cloudflare-credentials {{ certbot_credentials }}
+      -d {{ certbot_domain }}
+    creates: "/etc/letsencrypt/live/{{ certbot_domain }}/fullchain.pem"

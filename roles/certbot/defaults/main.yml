@@ -1,0 +1,3 @@
+---
+certbot_vault_path: "ansible/certbot-{{ inventory_hostname }}"
+certbot_credentials: /etc/letsencrypt/cloudflare.ini
