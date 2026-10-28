@@ -1,6 +1,6 @@
 ui            = true
 cluster_addr  = "http://{{ ansible_host }}:{{ openbao_api_port + 1 }}"
-api_addr      = "http://{{ ansible_host }}:{{ openbao_api_port }}"
+api_addr      = "https://{{ openbao_domain }}:{{ openbao_api_port }}"
 
 storage "raft" {
   path = "{{ openbao_raft_dir }}"
@@ -9,5 +9,6 @@ storage "raft" {
 
 listener "tcp" {
   address       = "0.0.0.0:{{ openbao_api_port}}"
-  tls_disable   = "true"
+  tls_cert_file = "{{ openbao_config_dir }}/tls/fullchain.pem"
+  tls_key_file = "{{ openbao_config_dir }}/tls/privkey.pem"
 }

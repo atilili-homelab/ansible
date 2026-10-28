@@ -1,5 +1,10 @@
 ---
 - name: Installation OpenBao
   hosts: openbao_server
+  vars:
+    openbao_domain: bao.macopla.com
   roles:
+    - role: certbot
+      vars:
+        certbot_domain: "{{ openbao_domain }}"
     - openbao
