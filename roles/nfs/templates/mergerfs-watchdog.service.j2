@@ -1,0 +1,9 @@
+# {{ ansible_managed }}
+[Unit]
+Description=Retire des pools mergerfs les branches NFS dont le serveur est injoignable
+After=local-fs.target network-online.target
+Wants=network-online.target
+
+[Service]
+Type=oneshot
+ExecStart=/usr/local/sbin/mergerfs-watchdog

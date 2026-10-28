@@ -2,3 +2,7 @@
 # Montages et pools mergerfs : définis dans l'inventaire (group_vars/nfs_media.yml)
 nfs_client_mounts: []
 nfs_client_mergerfs_pools: []
+
+# Pas d'option noyau « ro » : elle bloquerait l'écriture de .mergerfs (watchdog).
+# L'écriture reste refusée par les branches suffixées =RO.
+nfs_client_mergerfs_opts: "defaults,inodecalc=path-hash,cache.files=partial,dropcacheonclose=true,_netdev"

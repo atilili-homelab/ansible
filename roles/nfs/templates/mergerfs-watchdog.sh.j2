@@ -1,0 +1,83 @@
+#!/usr/bin/env bash
+# {{ ansible_managed }}
+#
+# Ne jamais stat/ls un montage NFS ou une branche ici : c'est exactement
+# l'appel qui bloque quand le serveur est tombé. Seuls des tests réseau
+# (TCP 2049) et le fichier de contrôle .mergerfs sont utilisés.
+set -u
+
+{% raw %}
+declare -A server_state
+
+log() {
+  logger -t mergerfs-watchdog -- "$*"
+}
+
+server_up() {
+  local server=$1
+  if [[ -z ${server_state[$server]+x} ]]; then
+    if timeout 2 bash -c '</dev/tcp/$1/2049' _ "$server" 2>/dev/null; then
+      server_state[$server]=1
+    else
+      server_state[$server]=0
+    fi
+  fi
+  [[ ${server_state[$server]} == 1 ]]
+}
+
+# mountpoint(1) ferait un stat de la racine du pool : on lit mountinfo
+is_mounted() {
+  awk -v m="$1" '$5 == m { found = 1 } END { exit !found }' /proc/self/mountinfo
+}
+
+# check_pool NOM BRANCHE SERVEUR [BRANCHE SERVEUR]... ; SERVEUR vaut "-" hors NFS
+check_pool() {
+  local name=$1
+  shift
+  local mnt=/mnt/UNIFIED/$name
+  local branch server desired current
+  local -a up=()
+
+  is_mounted "$mnt" || return 0
+
+  while (( $# >= 2 )); do
+    branch=$1
+    server=$2
+    shift 2
+    if [[ $server == - ]] || server_up "$server"; then
+      up+=("$branch=RO")
+    fi
+  done
+
+  if (( ${#up[@]} == 0 )); then
+    log "$name : aucune branche joignable, pool laissé inchangé"
+    return 0
+  fi
+  desired=$(IFS=:; printf '%s' "${up[*]}")
+
+  if ! current=$(timeout 10 getfattr --only-values -n user.mergerfs.branches "$mnt/.mergerfs" 2>/dev/null); then
+    log "$name : lecture de user.mergerfs.branches impossible"
+    return 0
+  fi
+
+  [[ $current == "$desired" ]] && return 0
+
+  if timeout 10 setfattr -n user.mergerfs.branches -v "$desired" "$mnt/.mergerfs" 2>/dev/null; then
+    log "$name : branches mises à jour (${#up[@]} actives) : $desired"
+  else
+    log "$name : échec de la mise à jour des branches (voulu : $desired)"
+  fi
+}
+{% endraw %}
+
+{% for pool in nfs_client_mergerfs_pools %}
+check_pool {{ pool.name | quote }}{% for branch in pool.sources %}
+{%- set ns = namespace(server='-', length=0) %}
+{%- for mount in nfs_client_mounts %}
+{%- if (branch == mount.path or branch.startswith(mount.path ~ '/')) and mount.path | length > ns.length %}
+{%- set ns.server = mount.server %}
+{%- set ns.length = mount.path | length %}
+{%- endif %}
+{%- endfor %} {{ branch | quote }} {{ ns.server | quote }}{% endfor %}
+
+{% endfor %}

@@ -97,13 +97,93 @@
     label: "{{ item.item.name }}"
   when: item.rc != 0
 
+- name: NFS - Installer attr (getfattr/setfattr pour le watchdog)
+  ansible.builtin.apt:
+    name: attr
+    state: present
+
+- name: NFS - Enregistrer les pools mergerfs dans /etc/fstab
+  ansible.posix.mount:
+    path: "/mnt/UNIFIED/{{ item.name }}"
+    src: "{{ item.sources | map('regex_replace', '$', '=RO') | join(':') }}"
+    fstype: fuse.mergerfs
+    opts: "{{ nfs_client_mergerfs_opts }}"
+    state: present
+  register: nfs_client_mergerfs_fstab
+  loop: "{{ nfs_client_mergerfs_pools }}"
+  loop_control:
+    label: "{{ item.name }}"
+
+# Un pool encore monté avec l'option noyau « ro » (ancienne entrée) rend
+# .mergerfs non modifiable : il faut le remonter même si fstab est à jour
+- name: NFS - Détecter les pools mergerfs montés en lecture seule noyau
+  ansible.builtin.command:
+    argv:
+      - awk
+      - -v
+      - "m=/mnt/UNIFIED/{{ item.name }}"
+      - '$5 == m { n = split($6, o, ","); for (i = 1; i <= n; i++) if (o[i] == "ro") f = 1 } END { exit !f }'
+      - /proc/self/mountinfo
+  register: nfs_client_mergerfs_ro
+  loop: "{{ nfs_client_mergerfs_pools }}"
+  loop_control:
+    label: "{{ item.name }}"
+  failed_when: false
+  changed_when: false
+  check_mode: false
+
+# FUSE ne supporte pas remount : mount sur un pool déjà monté empile une
+# 2e instance. On démonte donc jusqu'à ce que le point de montage soit libre.
+# mountinfo plutôt que mountpoint(1), qui ferait un stat de la racine du pool.
+- name: NFS - Démonter les pools mergerfs dont l'entrée a changé
+  ansible.builtin.shell: |
+    is_mounted() { awk -v m="$POOL" '$5 == m { f = 1 } END { exit !f }' /proc/self/mountinfo; }
+    for _ in $(seq 10); do
+      is_mounted || exit 0
+      umount -l --no-canonicalize "$POOL" || exit 1
+    done
+    ! is_mounted
+  environment:
+    POOL: "/mnt/UNIFIED/{{ item.0.name }}"
+  loop: "{{ nfs_client_mergerfs_pools | zip(nfs_client_mergerfs_fstab.results, nfs_client_mergerfs_ro.results) | list }}"
+  loop_control:
+    label: "{{ item.0.name }}"
+  when: item.1.changed or item.2.rc == 0
+  changed_when: true
+
 - name: NFS - Monter les pools mergerfs
   ansible.posix.mount:
     path: "/mnt/UNIFIED/{{ item.name }}"
-    src: "{{ item.sources | join(':') }}"
+    src: "{{ item.sources | map('regex_replace', '$', '=RO') | join(':') }}"
     fstype: fuse.mergerfs
-    opts: "defaults,ro,inodecalc=path-hash,cache.files=partial,dropcacheonclose=true,_netdev"
+    opts: "{{ nfs_client_mergerfs_opts }}"
     state: mounted
   loop: "{{ nfs_client_mergerfs_pools }}"
   loop_control:
     label: "{{ item.name }}"
+
+- name: NFS - Installer le watchdog mergerfs
+  ansible.builtin.template:
+    src: mergerfs-watchdog.sh.j2
+    dest: /usr/local/sbin/mergerfs-watchdog
+    mode: "0750"
+
+- name: NFS - Installer le service et le timer du watchdog mergerfs
+  ansible.builtin.template:
+    src: "mergerfs-watchdog.{{ item }}.j2"
+    dest: "/etc/systemd/system/mergerfs-watchdog.{{ item }}"
+    mode: "0644"
+  loop:
+    - service
+    - timer
+  notify: NFS - Recharger systemd
+
+- name: NFS - Recharger systemd avant d'activer le timer
+  ansible.builtin.meta: flush_handlers
+
+- name: NFS - Activer le timer du watchdog mergerfs
+  ansible.builtin.systemd_service:
+    name: mergerfs-watchdog.timer
+    enabled: true
+    state: started
+  ignore_errors: "{{ ansible_check_mode }}"
