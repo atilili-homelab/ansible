@@ -60,3 +60,11 @@
     - fullchain.pem
     - privkey.pem
   notify: Restart openbao
+
+- name: Déployer le hook de renouvellement certbot
+  ansible.builtin.template:
+    src: certbot-deploy-hook.sh.j2
+    dest: /etc/letsencrypt/renewal-hooks/deploy/openbao
+    owner: root
+    group: root
+    mode: "0755"
