@@ -4,5 +4,12 @@ nix_mount_path: /nix
 nix_users:
   - runner
 # GC automatique pendant les builds : sous nix_min_free octets libres, Nix libère jusqu'à nix_max_free
-nix_min_free: "{{ 10 * 1024**3 }}"
-nix_max_free: "{{ 30 * 1024**3 }}"
+# Simple filet de sécurité : le GC planifié (nix-gc.timer) fait le gros du travail
+nix_min_free: "{{ 5 * 1024**3 }}"
+nix_max_free: "{{ 10 * 1024**3 }}"
+# Le disque partage un NVMe fragile : limiter le parallélisme et les écritures
+nix_max_substitution_jobs: 4
+nix_http_connections: 4
+nix_fsync_metadata: false
+nix_gc_on_calendar: "*-*-* 04:30:00"
+nix_gc_randomized_delay: 10min

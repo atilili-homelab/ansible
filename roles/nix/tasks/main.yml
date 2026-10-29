@@ -76,3 +76,20 @@
   ansible.builtin.systemd_service:
     name: nix-daemon.service
     state: started
+
+- name: Nix - Installer le service et le timer de nettoyage
+  ansible.builtin.template:
+    src: "nix-gc.{{ item }}.j2"
+    dest: "/etc/systemd/system/nix-gc.{{ item }}"
+    mode: "0644"
+  loop:
+    - service
+    - timer
+
+- name: Nix - Activer le timer de nettoyage
+  ansible.builtin.systemd_service:
+    name: nix-gc.timer
+    enabled: true
+    state: started
+    daemon_reload: true
+  ignore_errors: "{{ ansible_check_mode }}"

@@ -1,0 +1,9 @@
+# {{ ansible_managed }}
+[Unit]
+Description=Nettoyage du store Nix (hors gcroots)
+
+[Service]
+Type=oneshot
+ExecStart=/usr/bin/nix-collect-garbage
+Nice=19
+IOSchedulingClass=idle

@@ -6,7 +6,7 @@ log:
 
 runner:
   file: {{ forgejo_runner_home }}/.runner # Where to store the registration result.
-  capacity: 2 # concurent task
+  capacity: 1 # concurent task
   timeout: 3h
   shutdown_timeout: 3h
   insecure: false

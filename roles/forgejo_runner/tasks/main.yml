@@ -29,6 +29,7 @@
     remote_src: true
     mode: "0755"
   notify: Redémarrer le runner
+  ignore_errors: "{{ ansible_check_mode }}"
 
 # Les jobs en label host utilisent le node et le git de la machine (actions/checkout)
 - name: Runner - Installer les dépendances des jobs host

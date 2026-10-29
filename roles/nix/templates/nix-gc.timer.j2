@@ -1,0 +1,11 @@
+# {{ ansible_managed }}
+[Unit]
+Description=Nettoyage quotidien du store Nix
+
+[Timer]
+OnCalendar={{ nix_gc_on_calendar }}
+RandomizedDelaySec={{ nix_gc_randomized_delay }}
+Persistent=true
+
+[Install]
+WantedBy=timers.target
