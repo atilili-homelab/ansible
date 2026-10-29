@@ -24,22 +24,6 @@
     deb: "https://github.com/openbao/openbao/releases/download/v{{ openbao_version }}/openbao_{{ openbao_version }}_linux_amd64.deb"
   notify: Restart openbao
 
-- name: Déployer la configuration
-  ansible.builtin.template:
-    src: openbao.hcl.j2
-    dest: "{{ openbao_config_dir }}/openbao.hcl"
-    owner: openbao
-    group: openbao
-    mode: "0640"
-  notify: Restart openbao
-
-- name: Activer et démarrer OpenBao
-  ansible.builtin.systemd:
-    name: openbao
-    enabled: true
-    state: started
-    daemon_reload: true
-
 - name: Créer le dossier des certificats
   ansible.builtin.file:
     path: "{{ openbao_config_dir }}/tls"
@@ -59,7 +43,7 @@
   loop:
     - fullchain.pem
     - privkey.pem
-  notify: Restart openbao
+  notify: Reload openbao
 
 - name: Déployer le hook de renouvellement certbot
   ansible.builtin.template:
@@ -68,3 +52,19 @@
     owner: root
     group: root
     mode: "0755"
+
+- name: Déployer la configuration
+  ansible.builtin.template:
+    src: openbao.hcl.j2
+    dest: "{{ openbao_config_dir }}/openbao.hcl"
+    owner: openbao
+    group: openbao
+    mode: "0640"
+  notify: Restart openbao
+
+- name: Activer et démarrer OpenBao
+  ansible.builtin.systemd:
+    name: openbao
+    enabled: true
+    state: started
+    daemon_reload: true

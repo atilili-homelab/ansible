@@ -3,3 +3,9 @@
   ansible.builtin.systemd:
     name: openbao
     state: restarted
+
+# Reload (SIGHUP) plutôt que restart : un restart laisse OpenBao scellé
+- name: Reload openbao
+  ansible.builtin.systemd:
+    name: openbao
+    state: reloaded
