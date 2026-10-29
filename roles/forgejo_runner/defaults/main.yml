@@ -3,5 +3,5 @@ forgejo_runner_user: runner
 forgejo_runner_uid: 6000
 forgejo_runner_home: "/home/{{ forgejo_runner_user }}"
 # renovate: datasource=forgejo-tags depName=forgejo/runner registryUrl=https://code.forgejo.org extractVersion=^v(?<version>.+)$
-forgejo_runner_version: "13.2.0"
+forgejo_runner_version: "13.2.1"
 forgejo_runner_download: "https://code.forgejo.org/forgejo/runner/releases/download"
