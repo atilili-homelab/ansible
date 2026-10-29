@@ -7,13 +7,11 @@ name: Test
 jobs:
   pre-commit:
     name: Pre-commit
-    runs-on: podman-nix
+    # Host mode: mouse's persistent store keeps the devShell between runs
+    runs-on: nixos
     env:
-      NIX_CONFIG: "experimental-features = nix-command flakes"
       SKIP: ansible-lint
     steps:
-      - name: Install nodejs
-        run: nix profile add nixpkgs#nodejs-slim
       - name: Checkout
         uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
         with:
