@@ -1,0 +1,11 @@
+---
+- name: Nœuds Proxmox - Observabilité Alloy
+  hosts: proxmox_nodes
+  tags: alloy
+  serial: 1
+  gather_facts: true
+  gather_subset:
+    - min
+    - network
+  roles:
+    - alloy

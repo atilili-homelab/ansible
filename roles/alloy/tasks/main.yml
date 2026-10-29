@@ -1,0 +1,56 @@
+---
+- name: Alloy - Créer le dossier des clés APT
+  ansible.builtin.file:
+    path: /etc/apt/keyrings
+    state: directory
+    mode: "0755"
+
+- name: Alloy - Déposer la clé du dépôt Grafana
+  ansible.builtin.copy:
+    src: grafana.asc
+    dest: /etc/apt/keyrings/grafana.asc
+    mode: "0644"
+
+- name: Alloy - Ajouter le dépôt Grafana
+  ansible.builtin.deb822_repository:
+    name: grafana
+    types: deb
+    uris: https://apt.grafana.com
+    suites: stable
+    components: main
+    architectures: amd64
+    signed_by: /etc/apt/keyrings/grafana.asc
+    state: present
+
+- name: Alloy - Installer la version {{ alloy_version }}
+  ansible.builtin.apt:
+    name: "alloy={{ alloy_version }}"
+    state: present
+    update_cache: true
+  ignore_errors: "{{ ansible_check_mode }}"
+
+# Le paquet ajoute lui-même l'utilisateur alloy aux groupes adm et
+# systemd-journal (postinst) : pas de gestion de groupes ici
+- name: Alloy - Arguments du service
+  ansible.builtin.template:
+    src: alloy.default.j2
+    dest: /etc/default/alloy
+    mode: "0644"
+  notify: Redémarrer Alloy
+
+- name: Alloy - Configuration
+  ansible.builtin.template:
+    src: config.alloy.j2
+    dest: /etc/alloy/config.alloy
+    owner: root
+    group: alloy
+    mode: "0640"
+  notify: Redémarrer Alloy
+  ignore_errors: "{{ ansible_check_mode }}"
+
+- name: Alloy - Activer et démarrer le service
+  ansible.builtin.systemd_service:
+    name: alloy
+    enabled: true
+    state: started
+  ignore_errors: "{{ ansible_check_mode }}"

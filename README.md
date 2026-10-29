@@ -55,6 +55,7 @@ Les playbooks de `playbooks/` se lancent aussi un par un :
 | `ci-forgejo-runner.yml`      | Runner Forgejo Actions sur Podman, Nix et cache Harmonia         |
 | `db-backup.yml`              | Sauvegarde quotidienne des bases de données vers PBS             |
 | `forgejo-backup.yml`         | Sauvegarde quotidienne de la forge vers PBS                      |
+| `pve-nodes.yml`              | Grafana Alloy sur les nœuds Proxmox (métriques et journal)       |
 
 ## Inventaire
 
@@ -193,6 +194,7 @@ Les rôles :
 | `nix`                             | Nix (paquets Debian) sur disque dédié `/nix`             |
 | `harmonia`                        | Cache binaire Nix servant `/nix/store` en HTTP           |
 | `pbs_client`                      | Dépôt et client Proxmox Backup Server                    |
+| `alloy`                           | Grafana Alloy en observateur (métriques unix, journal)   |
 | `forgejo_backup`, `db_backup`     | Sauvegardes de la forge et des bases de données vers PBS |
 | `upgrade`, `upgrade_notification` | Mises à jour et compte rendu par notification            |
 | `ntp_check`                       | Contrôle de la synchronisation horaire                   |

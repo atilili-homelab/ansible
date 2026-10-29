@@ -1,0 +1,20 @@
+---
+# renovate: datasource=github-releases depName=grafana/alloy extractVersion=^v(?<version>.+)$ versioning=loose
+alloy_version: "1.21.3-1"
+alloy_listen_address: "{{ ansible_facts['default_ipv4']['address'] }}"
+alloy_listen_port: 12345
+alloy_log_level: warn
+# Collecteurs node_exporter : uniquement ceux dont les alertes ont besoin
+alloy_unix_collectors:
+  - cpu
+  - diskstats
+  - filesystem
+  - hwmon
+  - loadavg
+  - meminfo
+  - netdev
+  - pressure
+  - vmstat
+# Logs du journal vers Loki : activer une fois l'URL joignable
+alloy_logs_enabled: false
+alloy_loki_url: https://loki.macopla.com/loki/api/v1/push

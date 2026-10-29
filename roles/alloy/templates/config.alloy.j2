@@ -1,0 +1,42 @@
+// {{ ansible_managed }}
+logging {
+  level  = "{{ alloy_log_level }}"
+  format = "logfmt"
+}
+
+// Pas de prometheus.scrape : Prometheus vient chercher ces métriques sur
+// /api/v0/component/prometheus.exporter.unix.default/metrics
+prometheus.exporter.unix "default" {
+  set_collectors = [{% for c in alloy_unix_collectors %}"{{ c }}"{{ ", " if not loop.last }}{% endfor %}]
+}
+{% if alloy_logs_enabled %}
+
+loki.write "default" {
+  endpoint {
+    url = "{{ alloy_loki_url }}"
+  }
+}
+
+loki.relabel "journal" {
+  forward_to = []
+
+  rule {
+    source_labels = ["__journal__systemd_unit"]
+    target_label  = "unit"
+  }
+
+  rule {
+    source_labels = ["__journal_priority_keyword"]
+    target_label  = "level"
+  }
+}
+
+loki.source.journal "pve" {
+  relabel_rules = loki.relabel.journal.rules
+  labels = {
+    host = "{{ inventory_hostname }}",
+    job  = "pve-journal",
+  }
+  forward_to = [loki.write.default.receiver]
+}
+{% endif %}
