@@ -58,6 +58,14 @@
     append: true
   loop: "{{ nix_users }}"
 
+- name: Nix - Créer le répertoire de build (root uniquement)
+  ansible.builtin.file:
+    path: "{{ nix_build_dir }}"
+    state: directory
+    owner: root
+    group: root
+    mode: "0700"
+
 - name: Nix - Configuration du daemon
   ansible.builtin.template:
     src: nix.conf.j2

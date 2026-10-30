@@ -11,5 +11,6 @@ nix_max_free: "{{ 10 * 1024**3 }}"
 nix_max_substitution_jobs: 4
 nix_http_connections: 4
 nix_fsync_metadata: false
+nix_build_dir: /nix/var/nix/builds
 nix_gc_on_calendar: "*-*-* 04:30:00"
 nix_gc_randomized_delay: 10min
