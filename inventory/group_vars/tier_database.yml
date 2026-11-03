@@ -5,6 +5,14 @@ db_backup_targets:
   - { container: authentik_authentik-db, user: authentik }
   - { container: bookstack_bookstack-db, engine: mariadb }
   - { container: immich_immich-db, user: immich }
+  - container: komodo_mongo
+    engine: mongodb
+    name: komodo
+    user: komodo
+    database: komodo
+    auth_database: admin
+    secret_path: services/komodo
+    secret_key: db_password
   - { container: ntfy_ntfy-db, user: ntfy }
   - { container: prometheus_grafana-db, user: grafana }
   - { container: prowlarr_prowlarr-db, user: prowlarr }

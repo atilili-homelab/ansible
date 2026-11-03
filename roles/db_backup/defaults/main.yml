@@ -5,6 +5,15 @@ db_backup_pbs_user: "yoann@pbs!databases"
 db_backup_pbs_namespace: Macopla/databases
 db_backup_vault_path: backup/databases-pbs
 db_backup_on_calendar: "*-*-* 01:00:00"
-# Conteneurs à sauvegarder : préfixe du nom (stack_service), utilisateur Postgres,
-# ou engine: mariadb (identifiants lus dans les variables MARIADB_* du conteneur)
+# Conteneurs à sauvegarder. Champs d'une cible :
+#   container   préfixe du nom du conteneur (stack_service), obligatoire
+#   engine      postgres (défaut) | mariadb | mongodb
+#   name        nom du dossier de dump et de l'ID PBS ; défaut : 2e segment de
+#               container sans le suffixe -db (komodo_mongo donnerait "mongo")
+#   user        utilisateur Postgres / MongoDB (mariadb : lu dans les variables MARIADB_* du conteneur)
+#   database    MongoDB : base sauvegardée
+#   auth_database MongoDB : base d'authentification (authSource) ; défaut : database
+#   secret_path chemin OpenBao du mot de passe, pour les moteurs qui ne l'ont pas
+#   secret_key  clé du mot de passe dans ce secret ; écrit dans db_backup_env_file
+#               sous DB_PASSWORD_<CONTAINER en majuscules, non alphanumériques -> _>
 db_backup_targets: []

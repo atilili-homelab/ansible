@@ -10,12 +10,16 @@
     state: directory
     mode: "0700"
 
-- name: Sauvegarde bases - Déposer les accès à PBS
+- name: Sauvegarde bases - Déposer les accès à PBS et les mots de passe des bases
   ansible.builtin.copy:
     content: |
       PBS_REPOSITORY='{{ db_backup_pbs_user }}@{{ pbs_server }}:{{ pbs_datastore }}'
       PBS_FINGERPRINT='{{ pbs_fingerprint }}'
       PBS_PASSWORD='{{ lookup('community.hashi_vault.vault_kv2_get', db_backup_vault_path).secret.secret }}'
+      {% for target in db_backup_targets if target.secret_path is defined %}
+      {% set secret = lookup('community.hashi_vault.vault_kv2_get', target.secret_path).secret %}
+      DB_PASSWORD_{{ target.container | upper | regex_replace('[^A-Z0-9]', '_') }}='{{ secret[target.secret_key] }}'
+      {% endfor %}
     dest: "{{ db_backup_env_file }}"
     mode: "0600"
   no_log: true

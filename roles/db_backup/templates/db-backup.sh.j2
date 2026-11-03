@@ -8,12 +8,15 @@ failures=()
 rm -rf "${dir:?}"/*
 
 {% for target in db_backup_targets %}
-{% set name = target.container.split('_')[1] | regex_replace('-db$', '') %}
+{% set name = target.name | default(target.container.split('_')[1] | regex_replace('-db$', '')) %}
+{% set engine = target.engine | default('postgres') %}
+{% set auth_db = target.auth_database | default(target.database | default('')) %}
+{% set pwd_var = 'DB_PASSWORD_' ~ (target.container | upper | regex_replace('[^A-Z0-9]', '_')) %}
 mkdir "$dir/{{ name }}"
 container=$(docker ps -q --filter "name=^{{ target.container }}\.")
 if [ -z "$container" ]; then
   failures+=("{{ name }} (conteneur introuvable)")
-{% if target.engine | default('postgres') == 'mariadb' %}
+{% if engine == 'mariadb' %}
 else
   file="$dir/{{ name }}/{{ name }}.sql"
   # Le mot de passe est lu dans le secret Docker, à l'intérieur du conteneur
@@ -25,7 +28,28 @@ else
     rm -f "$file.tmp"
     failures+=("{{ name }} (mariadb-dump)")
   fi
-{% else %}
+{% elif engine == 'mongodb' %}
+else
+  file="$dir/{{ name }}/{{ name }}.archive.gz"
+  # Le mot de passe (DB_PASSWORD_*, fourni par EnvironmentFile) est transmis par
+  # "-e VAR" sans valeur : il ne figure donc pas dans la ligne de commande visible
+  # dans ps. Dans le conteneur, mongodump le lit via --config (fichier virtuel
+  # créé par bash), car --password l'exposerait dans la liste des processus.
+  docker exec -e {{ pwd_var }} "$container" bash -c 'exec mongodump --quiet \
+      --username {{ target.user }} --authenticationDatabase {{ auth_db }} \
+      --db {{ target.database }} --archive --gzip \
+      --config <(printf "password: \"%s\"\n" "${{ pwd_var }}")' > "$file.tmp"
+  # Validation : code de sortie, fichier non vide, gzip intègre. gzip -t décompresse
+  # tout le flux et vérifie le CRC, ce qui détecte une archive tronquée ou corrompue.
+  # mongorestore --dryRun n'est pas retenu : il ne lit pas l'archive (retour immédiat
+  # même sur plusieurs dizaines de Mo), donc il ne valide rien.
+  if [ $? -eq 0 ] && [ -s "$file.tmp" ] && gzip -t "$file.tmp"; then
+    mv "$file.tmp" "$file"
+  else
+    rm -f "$file.tmp"
+    failures+=("{{ name }} (mongodump)")
+  fi
+{% elif engine == 'postgres' %}
 elif ! dbs=$(docker exec "$container" psql -U {{ target.user }} -d postgres -tAc \
     "SELECT datname FROM pg_database WHERE NOT datistemplate AND datname <> 'postgres'"); then
   failures+=("{{ name }} (liste des bases)")
@@ -40,6 +64,9 @@ else
       failures+=("{{ name }}/$db")
     fi
   done
+{% else %}
+else
+  failures+=("{{ name }} (engine inconnu : {{ engine }})")
 {% endif %}
 fi
 if [ -n "$(ls -A "$dir/{{ name }}")" ]; then
