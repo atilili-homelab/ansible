@@ -8,4 +8,4 @@ mongodb_admin_password: "{{ lookup('community.hashi_vault.vault_kv2_get', 'datab
 mongodb_databases:
   - name: komodo
     user: komodo
-    password: "{{ lookup('community.hashi_vault.vault_kv2_get', 'databases/komodo').secret.db_password }}"
+    password: "{{ lookup('community.hashi_vault.vault_kv2_get', 'services/komodo').secret.db_password }}"
