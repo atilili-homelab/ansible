@@ -1,8 +1,0 @@
----
-- name: Configurer le serveur de base de données
-  hosts: db_server
-  roles:
-    - postgresql
-    - mariadb
-    - mongodb
-    - redis
