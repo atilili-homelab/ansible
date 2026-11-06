@@ -1,23 +1,27 @@
-# ANSIBLE
-
-<!--toc:start-->
-
-- [Ce que fait le dépôt](#ce-que-fait-le-dépôt)
-- [Inventaire](#inventaire)
-- [Prérequis](#prérequis)
-- [Secrets](#secrets)
-- [Utilisation](#utilisation)
-- [Intégration continue](#intégration-continue)
-- [Structure](#structure)
-- [Collection](#collection)
-
-<!--toc:end-->
+# Configuration de mon homelab avec Ansible
 
 Playbooks et rôles qui configurent les machines de mon homelab : les VM et les
 conteneurs LXC de mon cluster Proxmox VE, ainsi qu'un VPS OVH.
 
-C'est la troisième partie de la chaîne : Packer construit les templates,
-OpenTofu les clone pour créer les machines, puis Ansible les configure.
+C'est le troisième maillon de ma chaîne d'automatisation : Packer construit les
+templates, OpenTofu les clone pour créer les machines, Ansible les configure.
+
+## Contenu de ce dépôt
+
+- **Un inventaire sans fichier à maintenir** : il interroge l'API Proxmox, et
+  les tags posés par OpenTofu deviennent les groupes Ansible.
+- **Du bootstrap au cluster** : socle commun, Docker, stockage partagé
+  (GlusterFS, NFS) et cluster Docker Swarm, en un seul point d'entrée.
+- **Aucun secret dans le dépôt** : tout est lu dans OpenBao à l'exécution, avec
+  un token éphémère limité aux droits d'Ansible.
+- **Les sauvegardes vers Proxmox Backup Server** : bases de données
+  conteneurisées et forge, chaque nuit.
+- **Une CI qui s'héberge elle-même** : le runner Forgejo qui teste ce dépôt est
+  installé par ce dépôt.
+- **Un socle partagé** : les rôles génériques sont publiés en collection,
+  `homelab.base`, que Packer applique aussi au build des templates.
+
+## Architecture
 
 ```mermaid
 flowchart LR
@@ -25,189 +29,50 @@ flowchart LR
     tofu -->|machines et tags| ansible[Ansible]
     base[Collection homelab.base] -.->|socle| packer
     base -.->|socle| ansible
+    bao[OpenBao] -.->|secrets| ansible
     ansible -->|cluster| swarm[Docker Swarm]
+    ansible -->|secrets Docker| swarm
 ```
 
-Les tags posés par OpenTofu deviennent les groupes de l'inventaire, et le socle
-d'une machine vient de la même collection qu'elle soit posée au build du
-template ou au bootstrap.
+## Mes choix
 
-## Ce que fait le dépôt
+- **Ansible configure, il ne crée pas** : les machines viennent d'OpenTofu.
+  Aucun fichier n'est échangé entre les deux, ajouter une machine à un groupe
+  revient à lui poser un tag.
+- **Le socle n'est écrit qu'à un seul endroit** : qu'il soit posé dans le
+  template par Packer ou au bootstrap, il vient de la même collection.
+- **Les secrets sont rangés par propriétaire, pas par lecteur** : le chemin
+  d'un secret dans OpenBao dit à quel service il appartient, pour qu'il ne
+  change pas quand l'architecture bouge.
+- **Le linter voit ce que voit l'exécution** : ansible-lint tourne dans l'image
+  d'exécution qui joue les playbooks, avec les mêmes collections.
+- **Les actions de CI sont épinglées par empreinte** : une étiquette redéplacée
+  ne peut pas changer le contenu d'un job.
 
-Deux points d'entrée regroupent les playbooks courants :
+## Prochaines étapes
 
-| Fichier           | Rôle                                                      |
-| ----------------- | --------------------------------------------------------- |
-| `site.yml`        | Bootstrap : socle, Docker, stockage, NFS et cluster Swarm |
-| `maintenance.yml` | Mises à jour du système et contrôle de la synchro horaire |
+- Terminer la migration des secrets vers la convention `services/<service>`.
+- Synchroniser les secrets Docker par convention : découvrir les chemins
+  `services/*` au lieu de tenir une liste à la main dans le playbook.
 
-Les playbooks de `playbooks/` se lancent aussi un par un :
+## Organisation
 
-| Playbook                     | Rôle                                                             |
-| ---------------------------- | ---------------------------------------------------------------- |
-| `bootstrap.yml`              | Socle commun, Docker, disques de données, GlusterFS, NFS, Swarm  |
-| `upgrade.yml`                | Mise à jour des paquets, redémarrage si nécessaire, notification |
-| `dns-setup.yml`              | Serveurs DNS Technitium                                          |
-| `openbao-setup.yml`          | Installation d'OpenBao                                           |
-| `swarm-networks.yml`         | Réseaux overlay du cluster Swarm                                 |
-| `sync-docker-secrets.yml`    | Copie des secrets d'OpenBao vers les secrets Docker Swarm        |
-| `komodo-periphery-setup.yml` | Agent Komodo Periphery sur les hôtes Docker                      |
-| `ci-forgejo-runner.yml`      | Runner Forgejo Actions sur Podman, Nix et cache Harmonia         |
-| `db-backup.yml`              | Sauvegarde quotidienne des bases de données vers PBS             |
-| `forgejo-backup.yml`         | Sauvegarde quotidienne de la forge vers PBS                      |
-| `pve-nodes.yml`              | Grafana Alloy sur les nœuds Proxmox (métriques et journal)       |
+- `site.yml`, `maintenance.yml` : les points d'entrée (bootstrap, mises à jour)
+- `playbooks/` : un playbook par usage
+- `roles/` : les rôles maison
+- `inventory/` : inventaire dynamique, groupes et variables de groupe
+- `execution-environment.yml` : l'image d'exécution (ansible-navigator, CI)
+- `galaxy.yml` : la collection `homelab.base`
 
-## Inventaire
+## Pour aller plus loin
 
-L'inventaire est dynamique : `inventory/inventory.proxmox.yml` interroge l'API
-de Proxmox et ne retient que les machines démarrées. Les tags posées sur les
-machines par OpenTofu deviennent des groupes Ansible, que `inventory/groups.yml`
-assemble en groupes fonctionnels (`swarm_managers`, `swarm_workers`, `gluster`,
-`nfs_media`…).
+- [Utilisation](docs/utilisation.md) : prérequis, commandes, adapter à votre
+  environnement
+- [Inventaire](docs/inventaire.md) : des tags OpenTofu aux groupes Ansible
+- [Secrets](docs/secrets.md) : OpenBao, convention de rangement, clé Harmonia
+- [Playbooks et rôles](docs/roles.md) : ce que fait chacun, la collection
+- [Intégration continue](docs/ci.md) : runner, workflows
 
-Aucun fichier n'est échangé entre OpenTofu et Ansible : ajouter une machine à un
-groupe revient à lui poser un tag.
+## Licence
 
-Le VPS, hors du cluster, est décrit dans `inventory/inventory.ovh.ini`.
-
-## Adapter à votre environnement
-
-Le dépôt décrit mon homelab réel. Pour le réutiliser, les valeurs propres au
-site sont regroupées ici :
-
-- `inventory/inventory.proxmox.yml` : URL de l'API Proxmox ;
-- `inventory/group_vars/` : comptes et clés SSH, notifications, serveur PBS,
-  montages NFS ;
-- `ansible.cfg` : adresse d'OpenBao ;
-- les secrets lus dans OpenBao, au chemin donné par chaque `lookup` dans les
-  rôles et playbooks.
-
-Les réglages des rôles sont dans leurs `defaults/` et se surchargent depuis
-l'inventaire.
-
-## Prérequis
-
-- **Nix** avec les flakes activés, et **direnv**.
-- **rbw** (client Bitwarden CLI) déverrouillé : il fournit le mot de passe
-  OpenBao de l'utilisateur `yoann`, si aucune session n'est ouverte.
-- Un accès réseau à **OpenBao**, à l'**API Proxmox** et aux machines en SSH.
-
-Les outils (ansible, ansible-lint, ansible-builder, pre-commit, gitleaks, client
-OpenBao) ne sont pas à installer : ils sont fournis par le `flake.nix`, en
-versions figées par `flake.lock`.
-
-Les collections et le rôle tiers ne sont pas versionnés dans le dépôt. Leurs
-versions sont fixées dans `requirements.yml`, et ils s'installent dans
-`~/.ansible` :
-
-```bash
-ansible-galaxy install -r requirements.yml
-```
-
-## Secrets
-
-Aucun secret n'est stocké dans ce dépôt.
-
-- Les mots de passe et les tokens sont lus dans OpenBao au moment de
-  l'exécution, par le plugin `community.hashi_vault`. Le token de l'API Proxmox
-  utilisé par l'inventaire suit le même chemin.
-- À l'entrée dans le dossier, `.envrc` réutilise la session OpenBao de `yoann`
-  (`~/.vault-token`, partagée avec les dépôts opentofu et packer), ou l'ouvre
-  avec le mot de passe lu dans Bitwarden via rbw. Il en dérive un token enfant
-  valable une heure, limité à `ansible-policy`, et l'exporte dans
-  `VAULT_TOKEN` ; `ansible-navigator.yml` le transmet à l'execution
-  environment. L'adresse d'OpenBao et la méthode d'authentification (`token`)
-  sont dans `ansible.cfg`.
-
-### Clé de signature d'Harmonia
-
-Le rôle `harmonia` lit la clé dans OpenBao (`ci/harmonia`, champ `secret_key`)
-mais ne la génère pas. À faire une seule fois, avant le premier passage :
-
-```bash
-nix key generate-secret --key-name mouse.macopla.home-1 > cache.secret
-bao kv put -mount=secret ci/harmonia secret_key=@cache.secret
-nix key convert-secret-to-public < cache.secret   # clé publique pour les laptops
-shred -u cache.secret
-```
-
-Les laptops déclarent `http://mouse.macopla.home:5000` dans `substituters` et la
-clé publique dans `trusted-public-keys`.
-
-## Utilisation
-
-```bash
-direnv allow                                    # une seule fois : charge l'environnement
-ansible-galaxy install -r requirements.yml      # après chaque changement de requirements.yml
-ansible-inventory --graph                       # vérifie l'inventaire et les groupes
-ansible-playbook site.yml --check --diff        # simulation, sans rien modifier
-ansible-playbook site.yml --limit <machine>     # applique sur une seule machine
-ansible-playbook maintenance.yml --tags upgrade # mises à jour seules
-```
-
-## Intégration continue
-
-La CI tourne sur Forgejo Actions, sur un runner sans root qui exécute ses jobs
-dans Podman. Ce runner est lui-même installé par ce dépôt
-(`playbooks/ci-forgejo-runner.yml`), et les workflows sont dans
-`.forgejo/workflows/`.
-
-| Workflow       | Déclencheur                                                   | Ce qu'il fait                                                                                                            |
-| -------------- | ------------------------------------------------------------- | ------------------------------------------------------------------------------------------------------------------------ |
-| `ci.yml`       | push sur une branche autre que `main`                         | gitleaks sur les commits de la branche, pre-commit sur tous les fichiers, puis ansible-lint dans l'image d'exécution      |
-| `ee-image.yml` | push sur `main` touchant la définition de l'image, ou manuel  | construit l'image d'exécution, liste les collections, vérifie les dépendances Python par `pip check`, puis la pousse      |
-
-Deux choix à noter :
-
-- ansible-lint ne tourne pas dans l'environnement de la CI mais dans l'image
-  d'exécution qui sert ensuite à jouer les playbooks, pour que le linter voie
-  les mêmes collections que l'exécution réelle.
-- Les actions tierces sont épinglées par empreinte et non par étiquette, pour
-  qu'une étiquette redéplacée ne change pas le contenu d'un job.
-
-## Structure
-
-| Élément                       | Rôle                                                                       |
-| ----------------------------- | -------------------------------------------------------------------------- |
-| `site.yml`, `maintenance.yml` | Points d'entrée                                                            |
-| `playbooks/`                  | Un playbook par usage                                                      |
-| `roles/`                      | Rôles maison                                                               |
-| `inventory/`                  | Inventaire dynamique, groupes et variables de groupe                       |
-| `ansible.cfg`                 | Configuration d'Ansible pour ce dépôt                                      |
-| `requirements.yml`            | Collections et rôle tiers, versions figées                                 |
-| `execution-environment.yml`   | Définition de l'image d'exécution, avec `requirements.txt` et `bindep.txt` |
-| `galaxy.yml`                  | Déclare le dépôt comme collection `homelab.base`                           |
-| `flake.nix`, `.envrc`         | Environnement de développement et connexion à OpenBao                      |
-
-Les rôles :
-
-| Rôle                              | Ce qu'il configure                                       |
-| --------------------------------- | -------------------------------------------------------- |
-| `common`                          | Paquets de base, chrony, comptes, durcissement SSH, swap |
-| `docker`                          | Installation de Docker et configuration du démon         |
-| `podman`                          | Installation de Podman                                   |
-| `disk_data`                       | Disque de données des workers                            |
-| `glusterfs`, `nfs`                | Stockage partagé et montages réseau                      |
-| `swarm`                           | Initialisation du cluster et étiquettes des nœuds        |
-| `technitium_dns`, `openbao`       | Services d'infrastructure                                |
-| `forgejo_runner`                  | Runner Forgejo Actions sans root, jobs dans Podman       |
-| `nix`                             | Nix (paquets Debian) sur disque dédié `/nix`             |
-| `harmonia`                        | Cache binaire Nix servant `/nix/store` en HTTP           |
-| `pbs_client`                      | Dépôt et client Proxmox Backup Server                    |
-| `alloy`                           | Grafana Alloy en observateur (métriques unix, journal)   |
-| `forgejo_backup`, `db_backup`     | Sauvegardes de la forge et des bases de données vers PBS |
-| `upgrade`, `upgrade_notification` | Mises à jour et compte rendu par notification            |
-| `ntp_check`                       | Contrôle de la synchronisation horaire                   |
-
-## Collection
-
-Les rôles génériques sont aussi distribués sous forme de collection,
-`homelab.base`, pour être réutilisés depuis d'autres dépôts sans y être
-recopiés. Elle ne contient que `common`, `docker`, `podman` et `pbs_client` ; les
-autres rôles sont propres à ce homelab et restent dans le dépôt.
-
-Le dépôt Packer s'en sert pendant le build des templates : il installe la
-collection à une version donnée et applique les rôles `common` et `docker`, pour
-que les paquets de base, chrony et Docker soient déjà dans l'image. Le socle
-d'une machine n'est ainsi écrit qu'à un seul endroit, qu'il soit posé au build
-du template ou par le bootstrap.
+[MIT](LICENSE)
