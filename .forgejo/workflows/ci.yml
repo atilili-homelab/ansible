@@ -33,7 +33,7 @@ jobs:
       HOME: /runner
       ANSIBLE_LOG_PATH: /tmp/ansible.log
     container:
-      image: forge.macopla.com/homelab/ansible/ansible-ee:latest@sha256:5df817ac7ae2dbb65ddf9881dd267234540dcab1401c7888d7d17d946aad398d
+      image: forge.macopla.com/homelab/ansible/ansible-ee:latest@sha256:2306917063717a70a534261fb68006fc145166388f702fd5a28ae536777518d5
       credentials:
         username: ci-bot
         password: ${{ secrets.CI_ANSIBLE_PULL_TOKEN }}
