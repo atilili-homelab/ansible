@@ -2,6 +2,7 @@ common_swappiness: 1
 common_vfs_cache_pressure: 50
 
 db_backup_targets:
+  - { container: authelia_postgres, user: postgres, name: authelia }
   - { container: authentik_authentik-db, user: authentik }
   - { container: bookstack_bookstack-db, engine: mariadb }
   - { container: immich_immich-db, user: immich }
@@ -15,7 +16,5 @@ db_backup_targets:
     secret_key: db_password
   - { container: ntfy_ntfy-db, user: ntfy }
   - { container: prometheus_grafana-db, user: grafana }
-  - { container: prowlarr_prowlarr-db, user: prowlarr }
-  - { container: radarr_radarr-db, user: radarr }
-  - { container: sonarr_sonarr-db, user: sonarr }
   - { container: tracearr_tracearr-db, user: tracearr }
+  - { container: mediarr_mediarr-db, user: postgres }
