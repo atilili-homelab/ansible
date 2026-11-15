@@ -38,8 +38,3 @@ all_users:
     groups: "{{ automate_groups }}"
     sudo: true
     ssh_public_key: "ssh-ed25519 AAAAC3NzaC1lZDI1NTE5AAAAIOo4kpjvy47Ce23q0oguoLGiy4RoDcLDVqwWME5jAURy"
-  - name: semaphore
-    uid: 5100
-    sudo: true
-    groups: "{{ automate_groups }}"
-    ssh_public_key: "ssh-ed25519 AAAAC3NzaC1lZDI1NTE5AAAAIN7T+IXKvUzSv/tl8J3CDH78PhiJ29g+VqkxxtGttiBB"
