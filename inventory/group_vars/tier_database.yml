@@ -14,7 +14,7 @@ db_backup_targets:
     auth_database: admin
     secret_path: services/komodo
     secret_key: db_password
-  - { container: ntfy_ntfy-db, user: ntfy }
+  - { container: notify_ntfy-db, user: ntfy }
   - { container: prometheus_grafana-db, user: grafana }
   - { container: tracearr_tracearr-db, user: tracearr }
   - { container: mediarr_mediarr-db, user: postgres }
