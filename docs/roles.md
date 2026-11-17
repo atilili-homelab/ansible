@@ -34,6 +34,7 @@ Les playbooks de `playbooks/` se lancent aussi un par un :
 | `disk_data`                       | Disque de données des workers                                            |
 | `glusterfs`, `nfs`                | Stockage partagé et montages réseau                                      |
 | `swarm`                           | Initialisation du cluster et étiquettes des nœuds                        |
+| `swarm_secrets`                   | Secrets Swarm découverts dans OpenBao, versionnés, ménage des orphelins  |
 | `technitium_dns`, `openbao`       | Services d'infrastructure                                                |
 | `certbot`                         | Certificats Let's Encrypt par challenge DNS-01 Cloudflare (pour OpenBao) |
 | `forgejo_runner`                  | Runner Forgejo Actions sans root, jobs dans Podman ou sur l'hôte         |

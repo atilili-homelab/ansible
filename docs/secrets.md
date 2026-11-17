@@ -36,10 +36,71 @@ entier.
 
 ## Secrets Docker Swarm
 
-`playbooks/sync-docker-secrets.yml` copie des secrets d'OpenBao vers les secrets
-Docker du cluster. Le champ `<champ>` de `services/<service>` devient le secret
-Docker `<service>_<champ>` : `services/komodo`, champ `db_password`, donne
-`komodo_db_password`.
+Le rôle `swarm_secrets` (appelé par `playbooks/sync-docker-secrets.yml`) crée
+les secrets Docker du cluster sans liste écrite à la main : il parcourt les
+chemins `services/*` d'OpenBao et lit leur `custom_metadata`.
+
+Chaque entrée `<champ>=<N>` de la métadonnée de `services/<service>` devient le
+secret Docker `<service>_<champ>_v<N>`, avec la valeur du champ. Un champ sans
+métadonnée reste dans OpenBao comme source de vérité et n'est jamais poussé
+dans Swarm (secret saisi dans une interface, fichier écrit sur un hôte hors
+Swarm…).
+
+`services/komodo`, champ `db_password`, métadonnée `db_password=1`, donne
+`komodo_db_password_v1`.
+
+Côté compose, la clé reste stable et seul le nom porte la version : le chemin
+dans le conteneur (`/run/secrets/komodo_db_password`) ne change pas d'une
+version à l'autre.
+
+```yaml
+secrets:
+  komodo_db_password: { name: komodo_db_password_v1, external: true }
+```
+
+### Ajouter un secret
+
+```bash
+bao kv patch -mount=secret services/<service> <champ>=-   # valeur lue sur l'entrée standard
+bao kv metadata patch -mount=secret -custom-metadata=<champ>=1 services/<service>
+```
+
+Puis lancer le playbook et déclarer le secret `_v1` dans le compose.
+
+### Rotation
+
+Un secret Swarm est immuable : changer une valeur, c'est créer une nouvelle
+version.
+
+1. Mettre la nouvelle valeur dans OpenBao (`bao kv patch`).
+2. Passer la métadonnée à `N+1` avec `bao kv metadata patch`. Ne jamais
+   utiliser `bao kv metadata put` : il remplace toute la `custom_metadata` du
+   chemin.
+3. Passer le nom à `_v<N+1>` dans le compose, puis committer.
+4. Lancer le playbook, qui crée la nouvelle version, puis déployer la stack.
+
+Le passage suivant du playbook supprime l'ancienne version.
+
+### Ménage
+
+En fin de rôle, les secrets créés par Ansible (label `ansible_key`) qui ne
+correspondent plus à aucune métadonnée sont supprimés. Docker refuse de
+supprimer un secret encore utilisé par un service : un oubli fait échouer le
+playbook sans rien casser. Les secrets hors convention listés dans le playbook
+(`swarm_secrets_keep`) ne sont jamais supprimés.
+
+### Saut de ligne final
+
+Une valeur collée ou récupérée par `echo`, `ssh … cat` finit souvent par un
+saut de ligne invisible. Certaines applications le gardent dans la valeur
+(mot de passe refusé), d'autres le retirent. Pour un mot de passe ou un token,
+le retirer :
+
+```bash
+bao kv get -mount=secret -field=<champ> services/<service> | tr -d '\n' | bao kv patch -mount=secret services/<service> <champ>=-
+```
+
+Les fichiers (clé PEM, YAML) gardent normalement leur saut de ligne final.
 
 ## Clé de signature d'Harmonia
 
