@@ -2,9 +2,13 @@
 - name: Swarm secrets - Lister les services dans OpenBao
   ansible.builtin.set_fact:
     swarm_secrets_services: "{{ query('community.hashi_vault.vault_list', 'secret/metadata/services')[0].data['keys'] }}"
+    swarm_secrets_desired: []
 
 - name: Swarm secrets - Traiter chaque service
   ansible.builtin.include_tasks: service.yml
   loop: "{{ swarm_secrets_services }}"
   loop_control:
     loop_var: swarm_secrets_service
+
+- name: Swarm secrets - Ménage
+  ansible.builtin.import_tasks: prune.yml

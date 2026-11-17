@@ -1,0 +1,3 @@
+---
+# Secrets Swarm créés hors de ce rôle : le ménage ne les supprime jamais
+swarm_secrets_keep: []

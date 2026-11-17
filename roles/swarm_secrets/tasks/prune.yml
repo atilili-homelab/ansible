@@ -1,0 +1,14 @@
+---
+# Seuls les secrets portant le label ansible_key (posé par docker_secret) sont candidats.
+# Docker refuse de supprimer un secret encore utilisé par un service.
+- name: Swarm secrets - Lister les secrets créés par Ansible
+  ansible.builtin.command: docker secret ls --filter label=ansible_key --format '{% raw %}{{.Name}}{% endraw %}'
+  register: swarm_secrets_existing
+  changed_when: false
+  check_mode: false
+
+- name: Swarm secrets - Supprimer les secrets orphelins
+  community.docker.docker_secret:
+    name: "{{ item }}"
+    state: absent
+  loop: "{{ swarm_secrets_existing.stdout_lines | difference(swarm_secrets_desired + swarm_secrets_keep) }}"

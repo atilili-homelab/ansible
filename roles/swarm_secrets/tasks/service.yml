@@ -12,3 +12,8 @@
   loop: "{{ (swarm_secrets_kv.metadata.custom_metadata or {}) | dict2items }}"
   loop_control:
     label: "{{ swarm_secrets_service }}_{{ item.key }}_v{{ item.value }}"
+
+- name: Swarm secrets - Retenir les noms attendus
+  ansible.builtin.set_fact:
+    swarm_secrets_desired: "{{ swarm_secrets_desired + [swarm_secrets_service ~ '_' ~ item.key ~ '_v' ~ item.value] }}"
+  loop: "{{ (swarm_secrets_kv.metadata.custom_metadata or {}) | dict2items }}"
