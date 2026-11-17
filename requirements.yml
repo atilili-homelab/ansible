@@ -12,11 +12,5 @@ collections:
     version: "14.0.1"
   - name: community.proxmox
     version: "2.1.0"
-  - name: community.mongodb
-    version: "1.8.1"
-  - name: ansible.mysql
-    version: "5.2.1"
-  - name: community.postgresql
-    version: "5.1.2"
   - name: community.hashi_vault
     version: "7.1.0"
