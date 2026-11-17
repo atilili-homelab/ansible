@@ -24,6 +24,7 @@ build_ignore:
   - roles/ntp_check
   - roles/openbao
   - roles/swarm
+  - roles/swarm_secrets
   - roles/technitium_dns
   - roles/upgrade
   - roles/upgrade_notification

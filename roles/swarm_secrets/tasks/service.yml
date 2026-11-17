@@ -1,0 +1,14 @@
+---
+- name: Swarm secrets - Lire le service dans OpenBao
+  ansible.builtin.set_fact:
+    swarm_secrets_kv: "{{ lookup('community.hashi_vault.vault_kv2_get', 'services/' ~ swarm_secrets_service) }}"
+  no_log: true
+
+- name: Swarm secrets - Créer les secrets du service
+  community.docker.docker_secret:
+    name: "{{ swarm_secrets_service }}_{{ item.key }}_v{{ item.value }}"
+    data: "{{ swarm_secrets_kv.secret[item.key] }}"
+    state: present
+  loop: "{{ (swarm_secrets_kv.metadata.custom_metadata or {}) | dict2items }}"
+  loop_control:
+    label: "{{ swarm_secrets_service }}_{{ item.key }}_v{{ item.value }}"

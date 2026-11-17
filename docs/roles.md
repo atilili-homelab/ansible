@@ -17,7 +17,6 @@ Les playbooks de `playbooks/` se lancent aussi un par un :
 | `upgrade.yml`                | Mise à jour des paquets, redémarrage si nécessaire, notification |
 | `dns-setup.yml`              | Serveurs DNS Technitium                                          |
 | `openbao-setup.yml`          | Installation d'OpenBao et de son certificat                      |
-| `swarm-networks.yml`         | Réseaux overlay du cluster Swarm                                 |
 | `sync-docker-secrets.yml`    | Copie des secrets d'OpenBao vers les secrets Docker Swarm        |
 | `komodo-periphery-setup.yml` | Agent Komodo Periphery sur les hôtes Docker                      |
 | `ci-forgejo-runner.yml`      | Runner Forgejo Actions sur Podman, Nix et cache Harmonia         |
@@ -48,15 +47,15 @@ Les playbooks de `playbooks/` se lancent aussi un par un :
 | `ntp_check`                       | Contrôle de la synchronisation horaire                                   |
 
 Les bases à sauvegarder sont déclarées dans `db_backup_targets`
-(`inventory/group_vars/tier_database.yml`) ; les champs d'une cible sont
-décrits dans `roles/db_backup/defaults/main.yml`.
+(`inventory/group_vars/tier_database.yml`) ; les champs d'une cible sont décrits
+dans `roles/db_backup/defaults/main.yml`.
 
 ## Collection `homelab.base`
 
 Les rôles génériques sont aussi distribués sous forme de collection,
 `homelab.base`, pour être réutilisés depuis d'autres dépôts sans y être
-recopiés. Elle ne contient que `common`, `docker`, `podman` et `pbs_client` ; les
-autres rôles sont propres à ce homelab et restent dans le dépôt.
+recopiés. Elle ne contient que `common`, `docker`, `podman` et `pbs_client` ;
+les autres rôles sont propres à ce homelab et restent dans le dépôt.
 
 Le dépôt Packer s'en sert pendant le build des templates : il installe la
 collection à une version donnée et applique les rôles `common` et `docker`, pour
