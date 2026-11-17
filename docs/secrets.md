@@ -28,8 +28,7 @@ lit. Le droit de lecture est donné par les policies OpenBao.
 Le chemin d'un service ne change pas quand sa base déménage : il ne dépend pas
 de l'endroit où elle tourne.
 
-Les anciens chemins (`databases/`, `stacks/`, `configs/`) migrent service par
-service. Pour déplacer un secret : le copier vers le nouveau chemin, mettre à
+Pour déplacer un secret : le copier vers le nouveau chemin, mettre à
 jour ses consommateurs, vérifier, puis supprimer l'ancien. Pour ajouter un champ
 à un secret existant, utiliser `bao kv patch` : `bao kv put` remplace le secret
 entier.
@@ -86,8 +85,8 @@ Le passage suivant du playbook supprime l'ancienne version.
 En fin de rôle, les secrets créés par Ansible (label `ansible_key`) qui ne
 correspondent plus à aucune métadonnée sont supprimés. Docker refuse de
 supprimer un secret encore utilisé par un service : un oubli fait échouer le
-playbook sans rien casser. Les secrets hors convention listés dans le playbook
-(`swarm_secrets_keep`) ne sont jamais supprimés.
+playbook sans rien casser. Un secret créé par Ansible hors de la convention peut
+être protégé du ménage en l'ajoutant à `swarm_secrets_keep` (vide par défaut).
 
 ### Saut de ligne final
 
@@ -101,6 +100,23 @@ bao kv get -mount=secret -field=<champ> services/<service> | tr -d '\n' | bao kv
 ```
 
 Les fichiers (clé PEM, YAML) gardent normalement leur saut de ligne final.
+
+## Hôtes hors Swarm
+
+Le VPS et la seedbox lancent leurs conteneurs avec Docker, sans Swarm : ils
+n'ont pas de secrets Docker. Le second play de `sync-docker-secrets.yml` écrit
+donc les valeurs dans des fichiers, sous `/etc/docker-secrets/` :
+
+- `vault_secrets` : un champ d'OpenBao devient un fichier
+  `/etc/docker-secrets/<docker_secret>` (mode `0400`), à monter dans le
+  conteneur ;
+- `vault_envfiles` : tous les champs d'un chemin deviennent un fichier
+  `/etc/docker-secrets/<name>.env` (`CHAMP=valeur`, clés en majuscules), pour
+  les applications qui ne lisent leurs secrets que dans l'environnement.
+
+Ces deux listes sont tenues à la main : la découverte par métadonnée ne
+concerne que Swarm. Chaque entrée porte le groupe d'hôtes qui la reçoit
+(`group`).
 
 ## Clé de signature d'Harmonia
 

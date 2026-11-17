@@ -17,7 +17,7 @@ Les playbooks de `playbooks/` se lancent aussi un par un :
 | `upgrade.yml`                | Mise à jour des paquets, redémarrage si nécessaire, notification |
 | `dns-setup.yml`              | Serveurs DNS Technitium                                          |
 | `openbao-setup.yml`          | Installation d'OpenBao et de son certificat                      |
-| `sync-docker-secrets.yml`    | Copie des secrets d'OpenBao vers les secrets Docker Swarm        |
+| `sync-docker-secrets.yml`    | Secrets d'OpenBao vers Swarm, et en fichiers vers VPS et seedbox |
 | `komodo-periphery-setup.yml` | Agent Komodo Periphery sur les hôtes Docker                      |
 | `ci-forgejo-runner.yml`      | Runner Forgejo Actions sur Podman, Nix et cache Harmonia         |
 | `db-backup.yml`              | Sauvegarde quotidienne des bases de données vers PBS             |
