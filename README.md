@@ -51,9 +51,9 @@ flowchart LR
 
 ## Prochaines étapes
 
-- Terminer la migration des secrets vers la convention `services/<service>`.
-- Synchroniser les secrets Docker par convention : découvrir les chemins
-  `services/*` au lieu de tenir une liste à la main dans le playbook.
+- Un `justfile` pour rendre l'exploitation des playbooks plus confortable,
+  par exemple une rotation de secret interactive : choisir le secret, saisir
+  la nouvelle valeur, incrémenter la version.
 
 ## Organisation
 
