@@ -19,7 +19,6 @@ build_ignore:
   - roles/disk_data
   - roles/forgejo_backup
   - roles/forgejo_runner
-  - roles/glusterfs
   - roles/nfs
   - roles/ntp_check
   - roles/openbao

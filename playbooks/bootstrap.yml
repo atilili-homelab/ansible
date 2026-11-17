@@ -28,13 +28,6 @@
   roles:
     - disk_data
 
-- name: Bootstrap - Configurer GlusterFS
-  hosts: gluster
-  tags: glusterfs
-  gather_facts: false
-  roles:
-    - glusterfs
-
 - name: Bootstrap - Monter les partages NFS
   hosts: nfs_media
   tags: nfs

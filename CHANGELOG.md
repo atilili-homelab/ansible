@@ -1,5 +1,12 @@
 # Changelog
 
+## [Non publié]
+
+### Retiré
+
+- Rôle `glusterfs` et groupes d'inventaire `gluster*` : GlusterFS est
+  décommissionné. Le rôle reste consultable sous le tag `archive/glusterfs`.
+
 ## [2.0.0] - 2026-10-16
 
 ### Ajouté

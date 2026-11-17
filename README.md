@@ -11,7 +11,7 @@ templates, OpenTofu les clone pour créer les machines, Ansible les configure.
 - **Un inventaire sans fichier à maintenir** : il interroge l'API Proxmox, et
   les tags posés par OpenTofu deviennent les groupes Ansible.
 - **Du bootstrap au cluster** : socle commun, Docker, stockage partagé
-  (GlusterFS, NFS) et cluster Docker Swarm, en un seul point d'entrée.
+  (NFS) et cluster Docker Swarm, en un seul point d'entrée.
 - **Aucun secret dans le dépôt** : tout est lu dans OpenBao à l'exécution, avec
   un token éphémère limité aux droits d'Ansible.
 - **Les sauvegardes vers Proxmox Backup Server** : bases de données

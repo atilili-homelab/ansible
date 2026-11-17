@@ -13,7 +13,7 @@ Les playbooks de `playbooks/` se lancent aussi un par un :
 
 | Playbook                     | Rôle                                                             |
 | ---------------------------- | ---------------------------------------------------------------- |
-| `bootstrap.yml`              | Socle commun, Docker, disques de données, GlusterFS, NFS, Swarm  |
+| `bootstrap.yml`              | Socle commun, Docker, disques de données, NFS, Swarm             |
 | `upgrade.yml`                | Mise à jour des paquets, redémarrage si nécessaire, notification |
 | `dns-setup.yml`              | Serveurs DNS Technitium                                          |
 | `openbao-setup.yml`          | Installation d'OpenBao et de son certificat                      |
@@ -32,7 +32,7 @@ Les playbooks de `playbooks/` se lancent aussi un par un :
 | `docker`                          | Installation de Docker et configuration du démon                         |
 | `podman`                          | Installation de Podman                                                   |
 | `disk_data`                       | Disque de données des workers                                            |
-| `glusterfs`, `nfs`                | Stockage partagé et montages réseau                                      |
+| `nfs`                             | Montages réseau NFS                                                      |
 | `swarm`                           | Initialisation du cluster et étiquettes des nœuds                        |
 | `swarm_secrets`                   | Secrets Swarm découverts dans OpenBao, versionnés, ménage des orphelins  |
 | `technitium_dns`, `openbao`       | Services d'infrastructure                                                |

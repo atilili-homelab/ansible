@@ -6,7 +6,7 @@ dans OpenBao, comme les autres secrets.
 
 Les tags posés sur les machines par OpenTofu deviennent des groupes Ansible, que
 `inventory/groups.yml` assemble en groupes fonctionnels (`swarm_managers`,
-`swarm_workers`, `gluster`, `nfs_media`…).
+`swarm_workers`, `nfs_media`…).
 
 Aucun fichier n'est échangé entre OpenTofu et Ansible : ajouter une machine à un
 groupe revient à lui poser un tag.
