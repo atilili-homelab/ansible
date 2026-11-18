@@ -3,8 +3,8 @@ common_vfs_cache_pressure: 50
 
 db_backup_targets:
   - { container: authelia_postgres, user: postgres, name: authelia }
-  - { container: authentik_authentik-db, user: authentik }
   - { container: bookstack_bookstack-db, engine: mariadb }
+  - { container: crowdsec_crowdsec-db, user: crowdsec }
   - { container: immich_immich-db, user: immich }
   - container: komodo_mongo
     engine: mongodb
@@ -14,7 +14,8 @@ db_backup_targets:
     auth_database: admin
     secret_path: services/komodo
     secret_key: db_password
-  - { container: notify_ntfy-db, user: ntfy }
-  - { container: prometheus_grafana-db, user: grafana }
-  - { container: tracearr_tracearr-db, user: tracearr }
   - { container: mediarr_mediarr-db, user: postgres }
+  - { container: monitoring_grafana-db, user: grafana }
+  - { container: notify_ntfy-db, user: ntfy }
+  - { container: tracearr_tracearr-db, user: tracearr }
+  - { container: vaultwarden_vaultwarden-db, user: vaultwarden }
