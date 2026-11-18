@@ -15,8 +15,8 @@ Les playbooks de `playbooks/` se lancent aussi un par un :
 | ---------------------------- | ---------------------------------------------------------------- |
 | `bootstrap.yml`              | Socle commun, Docker, disques de données, NFS, Swarm             |
 | `upgrade.yml`                | Mise à jour des paquets, redémarrage si nécessaire, notification |
-| `dns-setup.yml`              | Serveurs DNS Technitium                                          |
-| `openbao-setup.yml`          | Installation d'OpenBao et de son certificat                      |
+| `dns-setup.yml`              | Serveurs DNS Technitium, primaire puis secondaires               |
+| `openbao-setup.yml`          | Installation et mise à jour d'OpenBao et de son certificat       |
 | `sync-docker-secrets.yml`    | Secrets d'OpenBao vers Swarm, et en fichiers vers VPS et seedbox |
 | `komodo-periphery-setup.yml` | Agent Komodo Periphery sur les hôtes Docker                      |
 | `ci-forgejo-runner.yml`      | Runner Forgejo Actions sur Podman, Nix et cache Harmonia         |
@@ -50,6 +50,17 @@ Les playbooks de `playbooks/` se lancent aussi un par un :
 Les bases à sauvegarder sont déclarées dans `db_backup_targets`
 (`inventory/group_vars/tier_database.yml`) ; les champs d'une cible sont décrits
 dans `roles/db_backup/defaults/main.yml`.
+
+## Services hors apt
+
+OpenBao et Technitium ne passent pas par `upgrade.yml`.
+
+- **OpenBao** : paquet `.deb` épinglé dans le rôle. Renovate propose les
+  nouvelles versions, sans automerge : un restart scelle OpenBao. Snapshot Raft
+  avant l'update.
+- **Technitium** : l'installeur prend toujours la dernière version. Une action
+  Komodo signale les nouvelles releases ; `technitium_dns_update=true` relance
+  l'installeur, sur le primaire (tag `dns_primary`) puis les secondaires.
 
 ## Collection `homelab.base`
 
