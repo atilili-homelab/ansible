@@ -1,5 +1,11 @@
 ---
-- name: Configurer le serveur DNS
-  hosts: dns_server
+- name: Installer ou mettre à jour le serveur DNS Technitium primaire
+  hosts: dns_primary
+  roles:
+    - technitium_dns
+
+- name: Installer ou mettre à jour les serveurs DNS Technitium secondaires
+  hosts: dns_server:!dns_primary
+  serial: 1
   roles:
     - technitium_dns

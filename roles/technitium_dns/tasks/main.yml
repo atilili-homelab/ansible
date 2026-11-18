@@ -11,8 +11,14 @@
 
 - name: Télécharger et exécuter le script d'installation
   ansible.builtin.shell: set -o pipefail && curl -sSL {{ technitium_dns_install_url }} | bash
-  when: not technitium_dns_installed.stat.exists
+  when: not technitium_dns_installed.stat.exists or technitium_dns_update | bool
   changed_when: true
+
+- name: Attendre que le DNS réponde
+  ansible.builtin.wait_for:
+    port: 53
+    timeout: 60
+  when: not technitium_dns_installed.stat.exists or technitium_dns_update | bool
 
 - name: S'assurer que le service est démarré
   ansible.builtin.service:
