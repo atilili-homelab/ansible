@@ -1,4 +1,5 @@
 ---
+# renovate: datasource=github-releases extractVersion=^v(?<version>.*)$ depName=openbao/openbao
 openbao_version: "2.5.4"
 openbao_raft_dir: /var/raft
 openbao_config_dir: /etc/openbao

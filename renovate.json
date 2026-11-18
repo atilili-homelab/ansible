@@ -1,6 +1,11 @@
 {
   "$schema": "https://docs.renovatebot.com/renovate-schema.json",
-  "extends": [
-    "local>homelab/renovate-config"
+  "extends": ["local>homelab/renovate-config"],
+  "packageRules": [
+    {
+      "description": "Openbao : manual upgrades with control changelog",
+      "matchPackageNames": ["openbao/openbao"],
+      "automerge": false
+    }
   ]
 }
