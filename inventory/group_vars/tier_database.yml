@@ -2,7 +2,7 @@ common_swappiness: 1
 common_vfs_cache_pressure: 50
 
 db_backup_targets:
-  - { container: authelia_postgres, user: postgres, name: authelia }
+  - { container: authelia_authelia-db, user: postgres }
   - { container: bookstack_bookstack-db, engine: mariadb }
   - { container: crowdsec_crowdsec-db, user: crowdsec }
   - { container: immich_immich-db, user: immich }
