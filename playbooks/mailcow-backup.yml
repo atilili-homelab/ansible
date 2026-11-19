@@ -1,0 +1,10 @@
+---
+- name: Sauvegarde Mailcow - Backup quotidien vers PBS
+  hosts: mail
+  tags: mailcow_backup
+  gather_facts: true
+  gather_subset:
+    - min
+  roles:
+    - pbs_client
+    - mailcow_backup

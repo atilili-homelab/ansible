@@ -1,0 +1,40 @@
+---
+# 0755 : backup_and_restore.sh refuse un dossier non accessible en écriture aux autres
+- name: Sauvegarde Mailcow - Créer le dossier des backups
+  ansible.builtin.file:
+    path: "{{ mailcow_backup_dir }}"
+    state: directory
+    mode: "0755"
+
+- name: Sauvegarde Mailcow - Déposer les accès à PBS
+  ansible.builtin.copy:
+    content: |
+      PBS_REPOSITORY='{{ mailcow_backup_pbs_user }}@{{ pbs_server }}:{{ pbs_datastore }}'
+      PBS_FINGERPRINT='{{ pbs_fingerprint }}'
+      PBS_PASSWORD='{{ lookup('community.hashi_vault.vault_kv2_get', mailcow_backup_vault_path).secret.secret }}'
+    dest: "{{ mailcow_backup_env_file }}"
+    mode: "0600"
+  no_log: true
+
+- name: Sauvegarde Mailcow - Installer le script
+  ansible.builtin.template:
+    src: mailcow-backup.sh.j2
+    dest: /usr/local/bin/mailcow-backup
+    mode: "0750"
+
+- name: Sauvegarde Mailcow - Installer le service et le timer
+  ansible.builtin.template:
+    src: "mailcow-backup.{{ item }}.j2"
+    dest: "/etc/systemd/system/mailcow-backup.{{ item }}"
+    mode: "0644"
+  loop:
+    - service
+    - timer
+
+- name: Sauvegarde Mailcow - Activer le timer
+  ansible.builtin.systemd_service:
+    name: mailcow-backup.timer
+    enabled: true
+    state: started
+    daemon_reload: true
+  ignore_errors: "{{ ansible_check_mode }}"

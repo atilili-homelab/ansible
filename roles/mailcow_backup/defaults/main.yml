@@ -1,0 +1,7 @@
+---
+mailcow_backup_install_dir: /opt/mailcow-dockerized
+mailcow_backup_dir: /var/backups/mailcow
+mailcow_backup_env_file: /etc/mailcow-backup.env
+mailcow_backup_pbs_user: "yoann@pbs!mailcow"
+mailcow_backup_pbs_namespace: Macopla/mailcow
+mailcow_backup_vault_path: backup/mailcow-pbs

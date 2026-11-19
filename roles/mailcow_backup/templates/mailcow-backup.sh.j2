@@ -1,0 +1,19 @@
+#!/bin/bash
+set -euo pipefail
+
+notify_failure() {
+  curl -fsS -X POST "{{ apprise_url }}" \
+    -H "Content-Type: application/json" \
+    -d '{"title": "mailcow-backup - ECHEC ({{ inventory_hostname }})", "body": "Sauvegarde de Mailcow en échec, voir journalctl -u mailcow-backup", "tag": "infra-error"}'
+}
+trap notify_failure ERR
+
+# PBS garde l'historique : seul le dernier backup reste en local
+rm -rf {{ mailcow_backup_dir }}/mailcow-*
+
+MAILCOW_BACKUP_LOCATION={{ mailcow_backup_dir }} \
+  {{ mailcow_backup_install_dir }}/helper-scripts/backup_and_restore.sh backup all
+
+proxmox-backup-client backup mailcow.pxar:{{ mailcow_backup_dir }} \
+  --ns {{ mailcow_backup_pbs_namespace }} \
+  --backup-id mailcow

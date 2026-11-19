@@ -22,6 +22,7 @@ Les playbooks de `playbooks/` se lancent aussi un par un :
 | `ci-forgejo-runner.yml`      | Runner Forgejo Actions sur Podman, Nix et cache Harmonia         |
 | `db-backup.yml`              | Sauvegarde quotidienne des bases de données vers PBS             |
 | `forgejo-backup.yml`         | Sauvegarde quotidienne de la forge vers PBS                      |
+| `mailcow-backup.yml`         | Sauvegarde quotidienne de Mailcow vers PBS                       |
 | `pve-nodes.yml`              | Grafana Alloy sur les nœuds Proxmox (métriques et journal)       |
 
 ## Rôles
@@ -43,6 +44,7 @@ Les playbooks de `playbooks/` se lancent aussi un par un :
 | `pbs_client`                      | Dépôt et client Proxmox Backup Server                                    |
 | `alloy`                           | Grafana Alloy en observateur (métriques unix, journal)                   |
 | `forgejo_backup`                  | Sauvegarde de la forge vers PBS                                          |
+| `mailcow_backup`                  | Backup officiel de Mailcow (`backup_and_restore.sh`) vers PBS            |
 | `db_backup`                       | Dumps des bases conteneurisées (PostgreSQL, MariaDB, MongoDB) vers PBS   |
 | `upgrade`, `upgrade_notification` | Mises à jour et compte rendu par notification                            |
 | `ntp_check`                       | Contrôle de la synchronisation horaire                                   |
