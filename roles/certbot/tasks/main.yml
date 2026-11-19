@@ -17,7 +17,7 @@
 - name: Certbot - Déposer le token Cloudflare
   ansible.builtin.copy:
     content: |
-      dns_cloudflare_api_token = {{ lookup('community.hashi_vault.vault_kv2_get', certbot_vault_path).secret.token }}
+      dns_cloudflare_api_token = {{ lookup('community.hashi_vault.vault_kv2_get', certbot_vault_path).secret[certbot_vault_field] }}
     dest: "{{ certbot_credentials }}"
     owner: root
     group: root
