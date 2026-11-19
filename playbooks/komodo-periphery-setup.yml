@@ -19,7 +19,7 @@
 # (sans spawn_blocking, bug upstream #1392) ; quand un NAS distant flappe, le
 # statfs bloque le keepalive Ping 5s (codé en dur) → déconnexions Komodo.
 # TemporaryFileSystem=/mnt rend /mnt invisible dans le namespace de periphery :
-# plus aucun statfs sur les NFS/mergerfs, supervision Docker inchangée (socket).
+# plus aucun statfs sur les NFS, supervision Docker inchangée (socket).
 - name: Isoler periphery des montages média (nfs_media)
   hosts: nfs_media
   become: true
@@ -42,7 +42,7 @@
         mode: "0644"
         content: |
           # Géré par Ansible (komodo-periphery-setup.yml) — ne pas modifier à la main.
-          # /mnt masqué : le statfs des NFS/mergerfs bloquait le Ping websocket.
+          # /mnt masqué : le statfs des NFS bloquait le Ping websocket.
           [Service]
           TemporaryFileSystem=/mnt
       notify: Redémarrer periphery
