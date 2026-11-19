@@ -49,9 +49,21 @@ Les playbooks de `playbooks/` se lancent aussi un par un :
 | `upgrade`, `upgrade_notification` | Mises à jour et compte rendu par notification                            |
 | `ntp_check`                       | Contrôle de la synchronisation horaire                                   |
 
-Les bases à sauvegarder sont déclarées dans `db_backup_targets`
-(`inventory/group_vars/tier_database.yml`) ; les champs d'une cible sont décrits
-dans `roles/db_backup/defaults/main.yml`.
+## Sauvegarde des bases
+
+`db_backup` découvre les bases chaque nuit, par les labels de leur conteneur.
+Une base se déclare dans son compose, sans rien changer à ce dépôt.
+
+| Label                     | Rôle                                                                   |
+| ------------------------- | ---------------------------------------------------------------------- |
+| `backup.db.engine`        | `postgres`, `mariadb`, `mongodb`, ou `none` pour l'exclure. Obligatoire |
+| `backup.db.user`          | utilisateur du dump (postgres, mongodb)                                |
+| `backup.db.name`          | dossier et ID PBS. Défaut : service sans la stack ni `-db`             |
+| `backup.db.database`      | mongodb : base sauvegardée                                             |
+| `backup.db.auth_database` | mongodb : base d'authentification. Défaut : `backup.db.database`       |
+
+Les mots de passe sont lus dans les secrets Docker, à l'intérieur du conteneur.
+Un conteneur Postgres, MariaDB ou Mongo sans label déclenche une alerte.
 
 ## Services hors apt
 

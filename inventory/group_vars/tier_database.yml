@@ -1,21 +1,2 @@
 common_swappiness: 1
 common_vfs_cache_pressure: 50
-
-db_backup_targets:
-  - { container: authelia_authelia-db, user: postgres }
-  - { container: bookstack_bookstack-db, engine: mariadb }
-  - { container: crowdsec_crowdsec-db, user: crowdsec }
-  - { container: immich_immich-db, user: immich }
-  - container: komodo_mongo
-    engine: mongodb
-    name: komodo
-    user: komodo
-    database: komodo
-    auth_database: admin
-    secret_path: services/komodo
-    secret_key: db_password
-  - { container: mediarr_mediarr-db, user: postgres }
-  - { container: monitoring_grafana-db, user: grafana }
-  - { container: notify_ntfy-db, user: ntfy }
-  - { container: tracearr_tracearr-db, user: tracearr }
-  - { container: vaultwarden_vaultwarden-db, user: vaultwarden }

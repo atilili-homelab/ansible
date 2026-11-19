@@ -1,85 +1,113 @@
 #!/bin/bash
 set -uo pipefail
 
-dir={{ db_backup_dir }}
+dir="{{ db_backup_dir }}"
+namespace="{{ db_backup_pbs_namespace }}"
+apprise_url="{{ apprise_url }}"
+host="{{ inventory_hostname }}"
+{% raw %}
 failures=()
+
+label() {
+  docker inspect --format "{{ index .Config.Labels \"$2\" }}" "$1"
+}
 
 # Le dossier ne contient que les dumps du jour : PBS garde l'historique
 rm -rf "${dir:?}"/*
 
-{% for target in db_backup_targets %}
-{% set name = target.name | default(target.container.split('_')[1] | regex_replace('-db$', '')) %}
-{% set engine = target.engine | default('postgres') %}
-{% set auth_db = target.auth_database | default(target.database | default('')) %}
-{% set pwd_var = 'DB_PASSWORD_' ~ (target.container | upper | regex_replace('[^A-Z0-9]', '_')) %}
-mkdir "$dir/{{ name }}"
-container=$(docker ps -q --filter "name=^{{ target.container }}\.")
-if [ -z "$container" ]; then
-  failures+=("{{ name }} (conteneur introuvable)")
-{% if engine == 'mariadb' %}
-else
-  file="$dir/{{ name }}/{{ name }}.sql"
-  # Le mot de passe est lu dans le secret Docker, à l'intérieur du conteneur
-  docker exec "$container" sh -c 'MYSQL_PWD="$(cat "$MARIADB_PASSWORD_FILE")" exec mariadb-dump \
-      -u "$MARIADB_USER" --single-transaction "$MARIADB_DATABASE"' > "$file.tmp"
-  if [ $? -eq 0 ] && tail -n 1 "$file.tmp" | grep -q '^-- Dump completed'; then
-    mv "$file.tmp" "$file"
-  else
-    rm -f "$file.tmp"
-    failures+=("{{ name }} (mariadb-dump)")
+# Une base sans label backup.db.engine ne serait jamais sauvegardée, sans erreur
+for c in $(docker ps -q); do
+  image=$(docker inspect --format '{{ .Config.Image }}' "$c")
+  if [ -z "$(label "$c" backup.db.engine)" ] \
+      && echo "$image" | grep -qE '(^|/)(postgres|mariadb|mysql|mongo|timescaledb[a-z-]*)[:@]'; then
+    failures+=("$(label "$c" com.docker.swarm.service.name) (base sans label backup.db.engine)")
   fi
-{% elif engine == 'mongodb' %}
-else
-  file="$dir/{{ name }}/{{ name }}.archive.gz"
-  # Le mot de passe (DB_PASSWORD_*, fourni par EnvironmentFile) est transmis par
-  # "-e VAR" sans valeur : il ne figure donc pas dans la ligne de commande visible
-  # dans ps. Dans le conteneur, mongodump le lit via --config (fichier virtuel
-  # créé par bash), car --password l'exposerait dans la liste des processus.
-  docker exec -e {{ pwd_var }} "$container" bash -c 'exec mongodump --quiet \
-      --username {{ target.user }} --authenticationDatabase {{ auth_db }} \
-      --db {{ target.database }} --archive --gzip \
-      --config <(printf "password: \"%s\"\n" "${{ pwd_var }}")' > "$file.tmp"
-  # Validation : code de sortie, fichier non vide, gzip intègre. gzip -t décompresse
-  # tout le flux et vérifie le CRC, ce qui détecte une archive tronquée ou corrompue.
-  # mongorestore --dryRun n'est pas retenu : il ne lit pas l'archive (retour immédiat
-  # même sur plusieurs dizaines de Mo), donc il ne valide rien.
-  if [ $? -eq 0 ] && [ -s "$file.tmp" ] && gzip -t "$file.tmp"; then
-    mv "$file.tmp" "$file"
-  else
-    rm -f "$file.tmp"
-    failures+=("{{ name }} (mongodump)")
+done
+
+containers=$(docker ps -q --filter label=backup.db.engine)
+if [ -z "$containers" ]; then
+  failures+=("aucune base avec le label backup.db.engine")
+fi
+
+for c in $containers; do
+  engine=$(label "$c" backup.db.engine)
+  [ "$engine" = none ] && continue
+
+  service=$(label "$c" com.docker.swarm.service.name)
+  name=$(label "$c" backup.db.name)
+  if [ -z "$name" ]; then
+    name=${service#*_}
+    name=${name%-db}
   fi
-{% elif engine == 'postgres' %}
-elif ! dbs=$(docker exec "$container" psql -U {{ target.user }} -d postgres -tAc \
-    "SELECT datname FROM pg_database WHERE NOT datistemplate AND datname <> 'postgres'"); then
-  failures+=("{{ name }} (liste des bases)")
-else
-  for db in $dbs; do
-    file="$dir/{{ name }}/$db.dump"
-    if docker exec "$container" pg_dump -Fc -U {{ target.user }} -d "$db" > "$file.tmp" \
-        && docker exec -i "$container" pg_restore --list < "$file.tmp" > /dev/null; then
+  user=$(label "$c" backup.db.user)
+  mkdir "$dir/$name"
+
+  case "$engine" in
+  postgres)
+    if ! dbs=$(docker exec "$c" psql -U "$user" -d postgres -tAc \
+        "SELECT datname FROM pg_database WHERE NOT datistemplate AND datname <> 'postgres'"); then
+      failures+=("$name (liste des bases)")
+    fi
+    for db in ${dbs:-}; do
+      file="$dir/$name/$db.dump"
+      if docker exec "$c" pg_dump -Fc -U "$user" -d "$db" > "$file.tmp" \
+          && docker exec -i "$c" pg_restore --list < "$file.tmp" > /dev/null; then
+        mv "$file.tmp" "$file"
+      else
+        rm -f "$file.tmp"
+        failures+=("$name/$db")
+      fi
+    done
+    ;;
+  mariadb)
+    file="$dir/$name/$name.sql"
+    # Le mot de passe est lu dans le secret Docker, à l'intérieur du conteneur
+    docker exec "$c" sh -c 'MYSQL_PWD="$(cat "$MARIADB_PASSWORD_FILE")" exec mariadb-dump \
+        -u "$MARIADB_USER" --single-transaction "$MARIADB_DATABASE"' > "$file.tmp"
+    if [ $? -eq 0 ] && tail -n 1 "$file.tmp" | grep -q '^-- Dump completed'; then
       mv "$file.tmp" "$file"
     else
       rm -f "$file.tmp"
-      failures+=("{{ name }}/$db")
+      failures+=("$name (mariadb-dump)")
     fi
-  done
-{% else %}
-else
-  failures+=("{{ name }} (engine inconnu : {{ engine }})")
-{% endif %}
-fi
-if [ -n "$(ls -A "$dir/{{ name }}")" ]; then
-  proxmox-backup-client backup {{ name }}.pxar:"$dir/{{ name }}" \
-    --ns {{ db_backup_pbs_namespace }} \
-    --backup-id {{ name }} || failures+=("{{ name }} (envoi vers PBS)")
-fi
+    ;;
+  mongodb)
+    database=$(label "$c" backup.db.database)
+    auth_db=$(label "$c" backup.db.auth_database)
+    file="$dir/$name/$name.archive.gz"
+    # Le mot de passe est lu dans le secret Docker, à l'intérieur du conteneur.
+    # --config (fichier virtuel créé par bash) le garde hors de la liste des
+    # processus, où --password l'exposerait.
+    docker exec "$c" bash -c 'exec mongodump --quiet \
+        --username "$1" --authenticationDatabase "$2" --db "$3" --archive --gzip \
+        --config <(printf "password: \"%s\"\n" "$(cat "$MONGO_INITDB_ROOT_PASSWORD_FILE")")' \
+        _ "$user" "${auth_db:-$database}" "$database" > "$file.tmp"
+    # gzip -t décompresse tout le flux et vérifie le CRC : une archive tronquée
+    # ou corrompue est détectée. mongorestore --dryRun ne lit pas l'archive.
+    if [ $? -eq 0 ] && [ -s "$file.tmp" ] && gzip -t "$file.tmp"; then
+      mv "$file.tmp" "$file"
+    else
+      rm -f "$file.tmp"
+      failures+=("$name (mongodump)")
+    fi
+    ;;
+  *)
+    failures+=("$name (engine inconnu : $engine)")
+    ;;
+  esac
 
-{% endfor %}
+  if [ -n "$(ls -A "$dir/$name")" ]; then
+    proxmox-backup-client backup "$name.pxar:$dir/$name" \
+      --ns "$namespace" \
+      --backup-id "$name" || failures+=("$name (envoi vers PBS)")
+  fi
+done
+
 if [ -n "${failures[*]}" ]; then
   echo "Échecs : ${failures[*]}" >&2
-  curl -fsS -X POST "{{ apprise_url }}" \
+  curl -fsS -X POST "$apprise_url" \
     -H "Content-Type: application/json" \
-    -d "{\"title\": \"db-backup - ECHEC ({{ inventory_hostname }})\", \"body\": \"${failures[*]}\", \"tag\": \"infra-error\"}"
+    -d "{\"title\": \"db-backup - ECHEC ($host)\", \"body\": \"${failures[*]}\", \"tag\": \"infra-error\"}"
   exit 1
 fi
+{% endraw %}
