@@ -33,7 +33,7 @@ Les playbooks de `playbooks/` se lancent aussi un par un :
 | `docker`                          | Installation de Docker et configuration du démon                         |
 | `podman`                          | Installation de Podman                                                   |
 | `disk_data`                       | Disque de données des workers                                            |
-| `nfs`                             | Montages réseau NFS                                                      |
+| `nfs`                             | Montages réseau NFS, read-ahead (`nfs_client_readahead_kb`)              |
 | `swarm`                           | Initialisation du cluster et étiquettes des nœuds                        |
 | `swarm_secrets`                   | Secrets Swarm découverts dans OpenBao, versionnés, ménage des orphelins  |
 | `technitium_dns`, `openbao`       | Services d'infrastructure                                                |

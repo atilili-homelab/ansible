@@ -1,0 +1,6 @@
+---
+# Rejoue la règle udev sur les BDI existants : sans cela, la valeur ne
+# s'applique qu'aux montages créés après coup.
+- name: Réappliquer le read-ahead NFS
+  ansible.builtin.command: udevadm trigger --action=add --subsystem-match=bdi
+  changed_when: true

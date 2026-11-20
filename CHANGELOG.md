@@ -2,6 +2,11 @@
 
 ## [Non publié]
 
+### Ajouté
+
+- Rôle `nfs` : read-ahead des montages NFS via nfsrahead
+  (`nfs_client_readahead_kb`, 16384 Ko par défaut ; noyau : 128 Ko).
+
 ### Retiré
 
 - Rôle `glusterfs` et groupes d'inventaire `gluster*` : GlusterFS est

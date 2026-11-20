@@ -4,6 +4,16 @@
     name: nfs-common
     state: present
 
+- name: NFS - Configurer le read-ahead (nfsrahead)
+  ansible.builtin.copy:
+    dest: /etc/nfs.conf.d/nfsrahead.conf
+    content: |
+      [nfsrahead]
+      nfs={{ nfs_client_readahead_kb }}
+      nfs4={{ nfs_client_readahead_kb }}
+    mode: "0644"
+  notify: Réappliquer le read-ahead NFS
+
 - name: NFS - Créer le répertoire parent NAS-EXT
   ansible.builtin.file:
     path: /mnt/NAS-EXT

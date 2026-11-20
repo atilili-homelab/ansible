@@ -1,3 +1,7 @@
 ---
 # Montages : définis dans l'inventaire (group_vars/nfs_media.yml)
 nfs_client_mounts: []
+
+# Read-ahead des montages NFS, en Ko (défaut noyau : 128). Appliqué par
+# nfsrahead (règle udev de nfs-common) à la création de chaque montage.
+nfs_client_readahead_kb: 16384
